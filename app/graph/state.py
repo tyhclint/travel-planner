@@ -11,8 +11,9 @@ from app.domain.models.flights import FlightOption
 from app.domain.models.itinerary import Itinerary
 from app.domain.models.preferences import TravelPreferences
 from app.domain.models.recommendations import DestinationRecommendation
-from app.domain.models.status import TaskStatus
+from app.domain.models.status import TaskName, TaskStatus
 from app.domain.models.trip import TripRequirements
+from app.domain.models.workflow import ChangedField, RequestedCapability, TurnType
 
 
 def merge_dicts(left: dict | None, right: dict | None) -> dict:
@@ -26,32 +27,37 @@ class TravelState(TypedDict, total=False):
     latest_user_input: str
     conversation_summary: str
 
-    turn_type: str
-    requested_capabilities: list[str]
+    #turn interpreter results
+    turn_type: TurnType
+    # might remove ###########
     requirement_updates: dict
     preference_updates: dict
-    changed_fields: list[str]
+    requested_capabilities: list[RequestedCapability]
+    ##########################
+    changed_fields: list[ChangedField]
+    # future use for orchestrator agent (not used for now)
     revision_targets: list[str]
     latest_feedback: dict
-    missing_required_fields: list[str]
+    ###################################
+    missing_required_fields: list[str] #for downstream orchestrator to know what to missing to ask user for clarification before calling subagents
 
     trip_requirements: TripRequirements
     preferences: TravelPreferences
 
+    #subagent results
     flight_results: list[FlightOption]
     accommodation_results: list[AccommodationOption]
-    web_search_results: list[DestinationRecommendation]
+    destination_research_results: list[DestinationRecommendation]
 
     ranked_flights: list[FlightOption]
     ranked_accommodations: list[AccommodationOption]
-    recommended_packages: list[dict]
     selected_flight: FlightOption | None
     selected_accommodation: AccommodationOption | None
 
     current_itinerary: Itinerary | None
     itinerary_version: int
 
-    task_status: Annotated[dict[str, TaskStatus], merge_dicts]
+    task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
     dispatched_tasks: list[str]
     orchestration_steps: int
     revision_attempts: int

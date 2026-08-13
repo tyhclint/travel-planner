@@ -1,13 +1,14 @@
 from typing import Literal
 
+from app.domain.models.status import RUNNABLE_TASK_STATUSES, TaskName, normalize_task_status
 from app.graph.state import TravelState
 
 RouteName = Literal[
     "flight_agent",
     "accommodation_agent",
+    "destination_research_agent",
     "ranking",
-    "web_search_agent",
-    "itinerary_agent",
+    "itinerary_planner_agent",
     "user_clarification",
     "response_agent",
 ]
@@ -24,25 +25,25 @@ def route_orchestrator(state: TravelState) -> RouteName | list[RouteName]:
     if state.get("missing_required_fields"):
         return "user_clarification"
 
-    statuses = state.get("task_status", {})
+    statuses = normalize_task_status(state.get("task_status"))
     parallel_tasks: list[RouteName] = []
 
-    if statuses.get("flight") in {"pending", "stale"}:
-        parallel_tasks.append("flight_agent")
-
-    if statuses.get("accommodation") in {"pending", "stale"}:
-        parallel_tasks.append("accommodation_agent")
+    parallel_task_map: tuple[tuple[TaskName, RouteName], ...] = (
+        ("flight", "flight_agent"),
+        ("accommodation", "accommodation_agent"),
+        ("destination_research", "destination_research_agent"),
+    )
+    for task_name, route_name in parallel_task_map:
+        if statuses[task_name] in RUNNABLE_TASK_STATUSES:
+            parallel_tasks.append(route_name)
 
     if parallel_tasks:
         return parallel_tasks
 
-    if statuses.get("ranking") in {"pending", "stale"}:
+    if statuses["ranking"] in RUNNABLE_TASK_STATUSES:
         return "ranking"
 
-    if statuses.get("web_search") in {"pending", "stale"}:
-        return "web_search_agent"
-
-    if statuses.get("itinerary") in {"pending", "stale"}:
-        return "itinerary_agent"
+    if statuses["itinerary"] in RUNNABLE_TASK_STATUSES:
+        return "itinerary_planner_agent"
 
     return "response_agent"

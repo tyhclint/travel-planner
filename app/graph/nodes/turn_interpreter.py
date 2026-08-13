@@ -3,6 +3,7 @@ import re
 from app.domain.invalidation import mark_required_tasks
 from app.domain.models.preferences import TravelPreferences
 from app.domain.models.trip import TripRequirements
+from app.domain.models.workflow import ChangedField, RequestedCapability, TurnType
 from app.graph.state import TravelState
 
 
@@ -12,7 +13,7 @@ def turn_interpreter_node(state: TravelState):
 
     requirements = state.get("trip_requirements") or TripRequirements()
     preferences = state.get("preferences") or TravelPreferences()
-    changed_fields: list[str] = []
+    changed_fields: list[ChangedField] = []
 
     if "cheap" in lowered or "affordable" in lowered:
         preferences = preferences.model_copy(
@@ -57,7 +58,7 @@ def turn_interpreter_node(state: TravelState):
 
     return {
         "latest_user_input": latest_input,
-        "turn_type": "new_plan" if "plan" in lowered or "trip" in lowered else "follow_up_question",
+        "turn_type": _infer_turn_type(lowered),
         "requested_capabilities": requested_capabilities,
         "trip_requirements": requirements,
         "preferences": preferences,
@@ -67,6 +68,12 @@ def turn_interpreter_node(state: TravelState):
     }
 
 
+def _infer_turn_type(text: str) -> TurnType:
+    if "plan" in text or "trip" in text:
+        return "new_plan"
+    return "follow_up_question"
+
+
 def _latest_human_message(state: TravelState) -> str:
     for message in reversed(state.get("messages", [])):
         if getattr(message, "type", None) == "human":
@@ -74,26 +81,26 @@ def _latest_human_message(state: TravelState) -> str:
     return ""
 
 
-def _requested_capabilities(text: str) -> list[str]:
-    capabilities: set[str] = set()
+def _requested_capabilities(text: str) -> list[RequestedCapability]:
+    capabilities: set[RequestedCapability] = set()
 
     if any(keyword in text for keyword in ("flight", "flights", "fly")):
         capabilities.add("flight")
     if any(keyword in text for keyword in ("hotel", "accommodation", "stay")):
         capabilities.add("accommodation")
     if any(keyword in text for keyword in ("visit", "places", "recommend", "unique")):
-        capabilities.add("web_search")
+        capabilities.add("destination_research")
     if any(keyword in text for keyword in ("plan", "trip", "itinerary", "day ")):
-        capabilities.update({"flight", "accommodation", "web_search", "itinerary"})
+        capabilities.update({"flight", "accommodation", "destination_research", "itinerary"})
 
     if not capabilities:
-        capabilities.add("web_search")
+        capabilities.add("destination_research")
 
     return sorted(capabilities)
 
 
 def _missing_required_fields(
-    capabilities: list[str],
+    capabilities: list[RequestedCapability],
     requirements: TripRequirements,
 ) -> list[str]:
     missing: list[str] = []
@@ -107,7 +114,7 @@ def _missing_required_fields(
     if (
         any(
             capability in capabilities
-            for capability in ("flight", "accommodation", "web_search", "itinerary")
+            for capability in ("flight", "accommodation", "destination_research", "itinerary")
         )
         and not requirements.destination
     ):

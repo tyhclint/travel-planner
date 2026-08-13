@@ -19,7 +19,7 @@ def test_graph_builds_mock_trip_response():
     assert result["task_status"]["flight"] == "completed"
     assert result["task_status"]["accommodation"] == "completed"
     assert result["task_status"]["ranking"] == "completed"
-    assert result["task_status"]["web_search"] == "completed"
+    assert result["task_status"]["destination_research"] == "completed"
     assert result["task_status"]["itinerary"] == "completed"
     assert "Top flight" in result["final_response"]
     assert "Itinerary" in result["final_response"]

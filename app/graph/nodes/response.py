@@ -24,8 +24,8 @@ def response_node(state: TravelState):
             f"{accommodation.total_price:.0f} {accommodation.currency}."
         )
 
-    if state.get("web_search_results"):
-        names = ", ".join(result.name for result in state["web_search_results"][:3])
+    if state.get("destination_research_results"):
+        names = ", ".join(result.name for result in state["destination_research_results"][:3])
         lines.append(f"Destination ideas: {names}.")
 
     if state.get("current_itinerary"):

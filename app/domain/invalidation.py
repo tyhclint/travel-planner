@@ -1,13 +1,19 @@
-from app.domain.models.status import TaskName, TaskStatus
+from app.domain.models.status import (
+    REQUESTABLE_TASK_STATUSES,
+    TaskName,
+    TaskStatus,
+    normalize_task_status,
+)
+from app.domain.models.workflow import ChangedField, RequestedCapability
 
-DEPENDENCIES: dict[str, set[TaskName]] = {
+DEPENDENCIES: dict[ChangedField, set[TaskName]] = {
     "origin": {"flight", "ranking", "itinerary"},
-    "destination": {"flight", "accommodation", "web_search", "ranking", "itinerary"},
-    "travel_dates": {"flight", "accommodation", "web_search", "ranking", "itinerary"},
-    "budget": {"flight", "accommodation", "ranking", "itinerary"},
+    "destination": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
+    "travel_dates": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
+    "budget": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
     "flight_preferences": {"flight", "ranking", "itinerary"},
     "accommodation_preferences": {"accommodation", "ranking", "itinerary"},
-    "activity_preferences": {"web_search", "itinerary"},
+    "activity_preferences": {"destination_research", "itinerary"},
     "selected_flight": {"itinerary"},
     "selected_accommodation": {"itinerary"},
     "itinerary_day": {"itinerary"},
@@ -15,26 +21,19 @@ DEPENDENCIES: dict[str, set[TaskName]] = {
 
 
 def mark_required_tasks(
-    requested_capabilities: list[str],
-    current_status: dict[str, TaskStatus] | None = None,
-) -> dict[str, TaskStatus]:
-    statuses: dict[str, TaskStatus] = {
-        "flight": "not_required",
-        "accommodation": "not_required",
-        "web_search": "not_required",
-        "itinerary": "not_required",
-        "ranking": "not_required",
-    }
-    if current_status:
-        statuses.update(current_status)
+    requested_capabilities: list[RequestedCapability],
+    current_status: dict[TaskName, TaskStatus] | None = None,
+) -> dict[TaskName, TaskStatus]:
+    """ Marks tasks as pending in a fresh run """
+    statuses = normalize_task_status(current_status)
 
     for capability in requested_capabilities:
-        if capability in statuses and statuses[capability] in {"not_required", "stale", "failed"}:
+        if capability in statuses and statuses[capability] in REQUESTABLE_TASK_STATUSES:
             statuses[capability] = "pending"
 
     if (
         any(capability in requested_capabilities for capability in ("flight", "accommodation"))
-        and statuses["ranking"] in {"not_required", "stale", "failed"}
+        and statuses["ranking"] in REQUESTABLE_TASK_STATUSES
     ):
         statuses["ranking"] = "pending"
 
@@ -42,14 +41,15 @@ def mark_required_tasks(
 
 
 def invalidate_stale_tasks(
-    changed_fields: list[str],
-    current_status: dict[str, TaskStatus],
-) -> dict[str, TaskStatus]:
-    statuses = current_status.copy()
+    changed_fields: list[ChangedField],
+    current_status: dict[TaskName, TaskStatus],
+) -> dict[TaskName, TaskStatus]:
+    """ Marks completed tasks as stale if they depend on changed fields. """
+    statuses = normalize_task_status(current_status)
 
     for changed_field in changed_fields:
         for task in DEPENDENCIES.get(changed_field, set()):
-            if statuses.get(task) == "completed":
+            if statuses[task] == "completed":
                 statuses[task] = "stale"
 
     return statuses

@@ -2,7 +2,7 @@ from app.domain.models.itinerary import Activity, Itinerary, ItineraryDay
 from app.graph.state import TravelState
 
 
-def itinerary_node(state: TravelState):
+def itinerary_planner_node(state: TravelState):
     requirements = state["trip_requirements"]
     preferences = state["preferences"]
     destination = requirements.destination or "your destination"
@@ -12,16 +12,30 @@ def itinerary_node(state: TravelState):
         ItineraryDay(
             day=day,
             title=f"Day {day} in {destination}",
+            rationale=(
+                "Grouped flexible food and sightseeing stops into the same day so the plan can "
+                "later optimize around proximity and pace."
+            ),
             activities=[
                 Activity(
                     time="09:30",
                     title=f"{destination} neighborhood walk",
                     description=f"A {preferences.activity_pace} start with local food and sights.",
+                    category="culture",
+                    location=destination,
+                    duration_minutes=150,
+                    rationale="Starts the day with a low-friction activity near the destination core.",
+                    url="https://example.com/destination-neighborhood-walk",
                 ),
                 Activity(
                     time="14:00",
                     title="Flexible highlight activity",
                     description="Use destination research results to swap in a real attraction later.",
+                    category="highlight",
+                    location=destination,
+                    duration_minutes=180,
+                    rationale="Leaves room for the planner to choose a researched attraction later.",
+                    url="https://example.com/destination-highlight",
                 ),
             ],
         )

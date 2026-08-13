@@ -41,6 +41,7 @@ def _flight_options() -> list[FlightOption]:
             arrival_time=departure + timedelta(hours=7),
             duration_minutes=420,
             stops=0,
+            cabin_class="business",
             total_price=900,
         ),
         FlightOption(
@@ -52,6 +53,7 @@ def _flight_options() -> list[FlightOption]:
             arrival_time=departure + timedelta(hours=13),
             duration_minutes=780,
             stops=2,
+            cabin_class="economy",
             total_price=300,
         ),
         FlightOption(
@@ -63,6 +65,7 @@ def _flight_options() -> list[FlightOption]:
             arrival_time=departure + timedelta(hours=9),
             duration_minutes=540,
             stops=1,
+            cabin_class="economy",
             total_price=500,
         ),
     ]
