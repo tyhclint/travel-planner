@@ -4,7 +4,6 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from app.graph.nodes.accommodation import accommodation_node
-from app.graph.nodes.dependency_invalidation import dependency_invalidation_node
 from app.graph.nodes.destination_research import destination_research_node
 from app.graph.nodes.fan_in import fan_in_node
 from app.graph.nodes.flight import flight_node
@@ -12,6 +11,7 @@ from app.graph.nodes.itinerary_planner import itinerary_planner_node
 from app.graph.nodes.orchestrator import orchestrator_node, route_orchestrator
 from app.graph.nodes.ranking import ranking_node
 from app.graph.nodes.response import response_node
+from app.graph.nodes.task_status import task_status_node
 from app.graph.nodes.turn_interpreter import turn_interpreter_node
 from app.graph.nodes.user_clarification import user_clarification_node
 from app.graph.state import TravelState
@@ -21,7 +21,7 @@ def build_graph():
     builder = StateGraph(TravelState)
 
     builder.add_node("turn_interpreter", turn_interpreter_node)
-    builder.add_node("dependency_invalidation", dependency_invalidation_node)
+    builder.add_node("task_status", task_status_node)
     builder.add_node("orchestrator", orchestrator_node)
     builder.add_node("flight_agent", flight_node)
     builder.add_node("accommodation_agent", accommodation_node)
@@ -33,8 +33,8 @@ def build_graph():
     builder.add_node("response_agent", response_node)
 
     builder.add_edge(START, "turn_interpreter")
-    builder.add_edge("turn_interpreter", "dependency_invalidation")
-    builder.add_edge("dependency_invalidation", "orchestrator")
+    builder.add_edge("turn_interpreter", "task_status")
+    builder.add_edge("task_status", "orchestrator")
     builder.add_conditional_edges(
         "orchestrator",
         route_orchestrator,

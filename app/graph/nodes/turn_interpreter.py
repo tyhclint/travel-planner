@@ -1,6 +1,5 @@
 import re
 
-from app.domain.invalidation import mark_required_tasks
 from app.domain.models.preferences import TravelPreferences
 from app.domain.models.trip import TripRequirements
 from app.domain.models.workflow import ChangedField, RequestedCapability, TurnType
@@ -54,7 +53,6 @@ def turn_interpreter_node(state: TravelState):
 
     requested_capabilities = _requested_capabilities(lowered)
     missing_required_fields = _missing_required_fields(requested_capabilities, requirements)
-    task_status = mark_required_tasks(requested_capabilities, state.get("task_status"))
 
     return {
         "latest_user_input": latest_input,
@@ -64,7 +62,6 @@ def turn_interpreter_node(state: TravelState):
         "preferences": preferences,
         "changed_fields": sorted(set(changed_fields)),
         "missing_required_fields": missing_required_fields,
-        "task_status": task_status,
     }
 
 
