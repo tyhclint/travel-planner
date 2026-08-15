@@ -1,7 +1,8 @@
 from functools import lru_cache
 
-from app.core.config import get_settings
 from langchain_openai import ChatOpenAI
+
+from app.core.config import get_settings
 
 
 @lru_cache(maxsize=1)

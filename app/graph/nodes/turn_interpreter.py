@@ -4,10 +4,10 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.core.llm import get_turn_interpreter_llm
+from app.domain.models.errors import TurnInterpreterError
 from app.domain.models.preferences import TravelPreferences
 from app.domain.models.trip import TripRequirements
 from app.domain.models.turn_interpreter import TurnInterpreterOutput
-from app.domain.models.errors import TurnInterpreterError
 from app.graph.state import TravelState
 from app.prompts.turn_interpreter import (
     TURN_INTERPRETER_FEW_SHOTS,

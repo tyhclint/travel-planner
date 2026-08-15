@@ -35,19 +35,21 @@ default trip state. Use turn_type "new_plan".
 Use only the allowed enum values from the output schema.
 
 Guidance:
-- trip_requirement_updates should include only requirements newly provided or changed by the latest input.
-- preference_updates should include only preferences newly provided or changed by the latest input.
-- For a fresh plan, populated trip_requirement_updates and preference_updates are expected when the user provides trip details.
-- changed_fields should include fields that are newly provided or modified by the latest input and may affect downstream tasks.
+- turn_type should classify the latest input. Use new_plan when the user wants a new trip planned. Use revision when the user is modifying an existing plan. Use follow_up_question when the user is only asking about existing results. Use clarification_response when the user is answering a clarification question. Use presentation when the user only asks to format, summarize, present, or explain existing results.
+- intent_summary should be a concise natural-language summary of what the latest input asks for.
 - requested_capabilities should include only the capabilities needed to satisfy the latest input.
-- Use revision_targets when the user wants to modify an existing artifact, such as an itinerary day, flight choice, hotel choice, or destination research.
-- Use latest_feedback for natural-language revision instructions like remove, add, avoid, preserve, relax, upgrade, or make cheaper.
-- Use missing_required_fields only for fields required to satisfy the user's requested capabilities.
-- If the user is only asking a question about existing results, use follow_up_question.
-- If the user wants a new trip planned, use new_plan.
-- If the user is modifying an existing plan, use revision.
-- If the user is answering a clarification question, use clarification_response.
-- If the user only asks to format, summarize, present, or explain existing results, use presentation.
+- trip_requirement_updates should include only requirements newly provided or changed by the latest input. For a fresh plan, populated trip_requirement_updates are expected when the user provides trip details.
+- preference_updates should include only preferences newly provided or changed by the latest input. For a fresh plan, populated preference_updates are expected when the user provides preferences.
+- constraints should capture preservation instructions, such as keeping flights, accommodation, destination research, the existing itinerary, or unaffected itinerary days.
+- changed_fields should include fields that are newly provided or modified by the latest input and may affect downstream tasks. This is for dependency invalidation, not artifact editing scope.
+- revision_targets should be populated only when the user wants to modify, preserve, replace, or select from an existing artifact. This is for artifact editing scope, not dependency invalidation.
+   - For each revision target, artifact should be the existing artifact being referenced: flight, accommodation, destination_research, or itinerary.
+   - For each revision target, scope should describe how narrow the edit is. Use full when the whole artifact should be revised or regenerated. Use day for a specific itinerary day. Use item for a specific activity, hotel, flight, place, or itinerary item. Use selection when the user wants to choose a different option from existing results.
+   - For each revision target, day should be populated only when the user names a specific itinerary day. For example, "Day 2 is too packed" should use artifact: itinerary, scope: day, and day: 2.
+   - For each revision target, item should be populated only when the user refers to a specific item or option. For example, "remove the museum" can use item "museum", and "pick the second hotel" can use item "second hotel".
+- Leave revision_targets empty for fresh new_plan requests unless the user explicitly refers to revising, preserving, replacing, or selecting from an existing artifact.
+- latest_feedback should capture natural-language revision instructions like remove, add, avoid, preserve, relax, upgrade, or make cheaper. Keep it empty for fresh new_plan requests unless the user is revising or giving feedback on an existing artifact.
+- missing_required_fields should include only fields required to satisfy the user's requested capabilities.
 
 Few-shot examples:
 {few_shots}
