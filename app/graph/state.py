@@ -13,6 +13,7 @@ from app.domain.models.preferences import TravelPreferences
 from app.domain.models.recommendations import DestinationRecommendation
 from app.domain.models.status import TaskName, TaskStatus
 from app.domain.models.trip import TripRequirements
+from app.domain.models.turn_interpreter import RevisionTarget
 from app.domain.models.workflow import ChangedField, RequestedCapability, TurnType
 
 
@@ -29,6 +30,9 @@ class TravelState(TypedDict, total=False):
 
     #turn interpreter results
     turn_type: TurnType
+    intent_summary: str
+    trip_requirement_updates: dict
+    constraints: dict
     # might remove ###########
     requirement_updates: dict
     preference_updates: dict
@@ -36,7 +40,7 @@ class TravelState(TypedDict, total=False):
     ##########################
     changed_fields: list[ChangedField]
     # future use for orchestrator agent (not used for now)
-    revision_targets: list[str]
+    revision_targets: list[RevisionTarget | dict]
     latest_feedback: dict
     ###################################
     missing_required_fields: list[str] #for downstream orchestrator to know what to missing to ask user for clarification before calling subagents
