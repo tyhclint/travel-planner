@@ -7,7 +7,6 @@ RouteName = Literal[
     "flight_agent",
     "accommodation_agent",
     "destination_research_agent",
-    "ranking",
     "itinerary_planner_agent",
     "user_clarification",
     "response_agent",
@@ -39,9 +38,6 @@ def route_orchestrator(state: TravelState) -> RouteName | list[RouteName]:
 
     if parallel_tasks:
         return parallel_tasks
-
-    if statuses["ranking"] in RUNNABLE_TASK_STATUSES:
-        return "ranking"
 
     if statuses["itinerary"] in RUNNABLE_TASK_STATUSES:
         return "itinerary_planner_agent"
