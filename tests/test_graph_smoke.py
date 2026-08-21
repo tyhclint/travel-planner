@@ -3,7 +3,58 @@ from langchain_core.messages import HumanMessage
 from app.graph.builder import build_graph
 
 
-def test_graph_builds_mock_trip_response():
+class FakeTurnInterpreterLLM:
+    def __init__(self, output):
+        self.output = output
+
+    def with_structured_output(self, schema):
+        return self
+
+    def invoke(self, messages):
+        return self.output
+
+
+def _mock_turn_interpreter(monkeypatch, output):
+    monkeypatch.setattr(
+        "app.graph.nodes.turn_interpreter.get_turn_interpreter_llm",
+        lambda: FakeTurnInterpreterLLM(output),
+    )
+
+
+def test_graph_builds_mock_trip_response(monkeypatch):
+    _mock_turn_interpreter(
+        monkeypatch,
+        {
+            "turn_type": "new_plan",
+            "intent_summary": "User wants a cheap 5-day trip from Singapore to Tokyo.",
+            "requested_capabilities": [
+                "flight",
+                "accommodation",
+                "destination_research",
+                "itinerary",
+            ],
+            "trip_requirement_updates": {
+                "origin": "Singapore",
+                "destination": "Tokyo",
+                "trip_length_days": 5,
+            },
+            "preference_updates": {
+                "overall_style": "cheap",
+                "flight_style": "cheap",
+                "accommodation_style": "cheap",
+                "flight_priority": "cheapest",
+                "accommodation_priority": "cheapest",
+            },
+            "changed_fields": [
+                "origin",
+                "destination",
+                "travel_dates",
+                "budget",
+                "flight_preferences",
+                "accommodation_preferences",
+            ],
+        }
+    )
     graph = build_graph()
 
     result = graph.invoke(
@@ -25,7 +76,20 @@ def test_graph_builds_mock_trip_response():
     assert "Itinerary" in result["final_response"]
 
 
-def test_graph_routes_flight_only_request_without_accommodation():
+def test_graph_routes_flight_only_request_without_accommodation(monkeypatch):
+    _mock_turn_interpreter(
+        monkeypatch,
+        {
+            "turn_type": "new_plan",
+            "intent_summary": "User wants flights from Singapore to Tokyo.",
+            "requested_capabilities": ["flight"],
+            "trip_requirement_updates": {
+                "origin": "Singapore",
+                "destination": "Tokyo",
+            },
+            "changed_fields": ["origin", "destination"],
+        }
+    )
     graph = build_graph()
 
     result = graph.invoke(
@@ -44,7 +108,19 @@ def test_graph_routes_flight_only_request_without_accommodation():
     assert "Top stay" not in result["final_response"]
 
 
-def test_graph_routes_accommodation_only_request_without_flight():
+def test_graph_routes_accommodation_only_request_without_flight(monkeypatch):
+    _mock_turn_interpreter(
+        monkeypatch,
+        {
+            "turn_type": "new_plan",
+            "intent_summary": "User wants accommodation in Tokyo.",
+            "requested_capabilities": ["accommodation"],
+            "trip_requirement_updates": {
+                "destination": "Tokyo",
+            },
+            "changed_fields": ["destination"],
+        }
+    )
     graph = build_graph()
 
     result = graph.invoke(
