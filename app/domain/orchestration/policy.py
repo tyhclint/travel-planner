@@ -1,5 +1,4 @@
-from typing import Any, Mapping
-
+from app.graph.state import TravelState
 from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
 from app.domain.models.status import (
     RUNNABLE_TASK_STATUSES,
@@ -21,7 +20,7 @@ ROUTE_TO_TASK: dict[OrchestratorRoute, TaskName | None] = {
 
 
 def deterministic_guardrail_decision(
-    state: Mapping[str, Any],
+    state: TravelState,
     orchestration_steps: int,
 ) -> OrchestratorDecision | None:
     """Return a mandatory deterministic decision for hard-stop or clarification cases."""
@@ -45,7 +44,7 @@ def deterministic_guardrail_decision(
 
 
 def apply_deterministic_policy(
-    state: Mapping[str, Any],
+    state: TravelState,
     decision: OrchestratorDecision,
 ) -> OrchestratorDecision:
     """Reject unsafe LLM decisions and replace them with deterministic fallback routing."""
@@ -67,7 +66,7 @@ def apply_deterministic_policy(
 
 
 def fallback_decision(
-    state: Mapping[str, Any],
+    state: TravelState,
     orchestration_steps: int,
 ) -> OrchestratorDecision:
     """Choose the next route using the deterministic task-status policy."""
