@@ -40,15 +40,15 @@ Guidance:
 - requested_capabilities should include only the capabilities needed to satisfy the latest input.
 - trip_requirement_updates should include only requirements newly provided or changed by the latest input. For a fresh plan, populated trip_requirement_updates are expected when the user provides trip details.
 - preference_updates should include only preferences newly provided or changed by the latest input. For a fresh plan, populated preference_updates are expected when the user provides preferences.
-- constraints should capture preservation instructions, such as keeping flights, accommodation, destination research, the existing itinerary, or unaffected itinerary days.
+- constraints is currently reserved for future structured constraints. Leave it empty.
 - changed_fields should include fields that are newly provided or modified by the latest input and may affect downstream tasks. This is for dependency invalidation, not artifact editing scope.
-- revision_targets should be populated only when the user wants to modify, preserve, replace, or select from an existing artifact. This is for artifact editing scope, not dependency invalidation.
+- revision_targets should be populated only when the user wants to modify, replace, or select from an existing artifact. This is for artifact editing scope, not dependency invalidation.
    - For each revision target, artifact should be the existing artifact being referenced: flight, accommodation, destination_research, or itinerary.
    - For each revision target, scope should describe how narrow the edit is. Use full when the whole artifact should be revised or regenerated. Use day for a specific itinerary day. Use item for a specific activity, hotel, flight, place, or itinerary item. Use selection when the user wants to choose a different option from existing results.
    - For each revision target, day should be populated only when the user names a specific itinerary day. For example, "Day 2 is too packed" should use artifact: itinerary, scope: day, and day: 2.
    - For each revision target, item should be populated only when the user refers to a specific item or option. For example, "remove the museum" can use item "museum", and "pick the second hotel" can use item "second hotel".
-- Leave revision_targets empty for fresh new_plan requests unless the user explicitly refers to revising, preserving, replacing, or selecting from an existing artifact.
-- latest_feedback should capture natural-language revision instructions like remove, add, avoid, preserve, relax, upgrade, or make cheaper. Keep it empty for fresh new_plan requests unless the user is revising or giving feedback on an existing artifact.
+- Leave revision_targets empty for fresh new_plan requests unless the user explicitly refers to revising, replacing, or selecting from an existing artifact.
+- latest_feedback should capture natural-language revision instructions like remove, add, avoid, relax, upgrade, or make cheaper. Keep it empty for fresh new_plan requests unless the user is revising or giving feedback on an existing artifact.
 - missing_required_fields should include only fields required to satisfy the user's requested capabilities.
 
 Few-shot examples:
@@ -106,16 +106,14 @@ Actually make the hotel nicer, but keep the flights cheap.
 Structured output:
 {
   "turn_type": "revision",
-  "intent_summary": "User wants a nicer accommodation while preserving cheap flights.",
+  "intent_summary": "User wants a nicer accommodation while keeping flights cheap.",
   "requested_capabilities": ["accommodation"],
   "trip_requirement_updates": {},
   "preference_updates": {
     "accommodation_style": "luxurious",
     "accommodation_priority": "most_luxurious"
   },
-  "constraints": {
-    "preserve_flights": true
-  },
+  "constraints": {},
   "changed_fields": ["accommodation_preferences"],
   "revision_targets": [
     {
@@ -150,11 +148,7 @@ Structured output:
     "activity_pace": "relaxed",
     "interests": ["food", "shopping"]
   },
-  "constraints": {
-    "preserve_flights": true,
-    "preserve_accommodation": true,
-    "preserve_unaffected_itinerary_days": true
-  },
+  "constraints": {},
   "changed_fields": ["activity_preferences", "itinerary_day"],
   "revision_targets": [
     {

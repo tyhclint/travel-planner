@@ -50,10 +50,7 @@ def test_turn_interpreter_uses_structured_output_and_merges_updates(monkeypatch)
                 "activity_pace": "packed",
                 "interests": ["food", "shopping"],
             },
-            "constraints": {
-                "preserve_flights": True,
-                "preserve_unaffected_itinerary_days": True,
-            },
+            "constraints": {},
             "changed_fields": [
                 "destination",
                 "destination",
@@ -68,8 +65,7 @@ def test_turn_interpreter_uses_structured_output_and_merges_updates(monkeypatch)
             ],
             "latest_feedback": {
                 "add": ["shopping"],
-                "preserve": ["flights"],
-                "instruction": "Upgrade the hotel and preserve the flights.",
+                "instruction": "Upgrade the hotel and keep the flights unchanged.",
             },
             "missing_required_fields": ["budget", "budget"],
         },
@@ -104,10 +100,7 @@ def test_turn_interpreter_uses_structured_output_and_merges_updates(monkeypatch)
         "activity_pace": "packed",
         "interests": ["food", "shopping"],
     }
-    assert result["constraints"] == {
-        "preserve_flights": True,
-        "preserve_unaffected_itinerary_days": True,
-    }
+    assert result["constraints"] == {}
     assert result["trip_requirements"].origin == "Singapore"
     assert result["trip_requirements"].destination == "Tokyo"
     assert result["trip_requirements"].travellers == 2
@@ -127,13 +120,12 @@ def test_turn_interpreter_uses_structured_output_and_merges_updates(monkeypatch)
     ]
     assert result["latest_feedback"] == {
         "add": ["shopping"],
-        "preserve": ["flights"],
-        "instruction": "Upgrade the hotel and preserve the flights.",
+        "instruction": "Upgrade the hotel and keep the flights unchanged.",
     }
     assert result["missing_required_fields"] == ["budget"]
 
 
-def test_turn_interpreter_preserves_existing_defaults_when_no_updates(monkeypatch):
+def test_turn_interpreter_keeps_existing_defaults_when_no_updates(monkeypatch):
     _mock_turn_interpreter_llm(
         monkeypatch,
         {

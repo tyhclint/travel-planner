@@ -40,12 +40,6 @@ class TravelPreferenceUpdates(BaseModel):
 class TurnConstraints(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    preserve_flights: bool | None = None
-    preserve_accommodation: bool | None = None
-    preserve_destination_research: bool | None = None
-    preserve_itinerary: bool | None = None
-    preserve_unaffected_itinerary_days: bool | None = None
-
 
 class RevisionTarget(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -62,7 +56,6 @@ class LatestFeedback(BaseModel):
     remove: list[str] = Field(default_factory=list)
     add: list[str] = Field(default_factory=list)
     avoid: list[str] = Field(default_factory=list)
-    preserve: list[str] = Field(default_factory=list)
     instruction: str | None = None
 
 

@@ -50,11 +50,7 @@ class TravelPreferencePatch(TypedDict, total=False):
 
 
 class TurnConstraintPatch(TypedDict, total=False):
-    preserve_flights: bool
-    preserve_accommodation: bool
-    preserve_destination_research: bool
-    preserve_itinerary: bool
-    preserve_unaffected_itinerary_days: bool
+    pass
 
 
 class TravelState(TypedDict, total=False):
@@ -77,7 +73,8 @@ class TravelState(TypedDict, total=False):
     changed_fields: list[ChangedField]
     revision_targets: list[RevisionTarget | dict]
     latest_feedback: dict
-    missing_required_fields: list[str] #for downstream orchestrator to know what to missing to ask user for clarification before calling subagents
+    # Used by the orchestrator to ask for clarification before calling subagents.
+    missing_required_fields: list[str]
 
 
     #subagent results
@@ -102,4 +99,3 @@ class TravelState(TypedDict, total=False):
     fan_in_notes: Annotated[list[str], add]
 
     final_response: str
-

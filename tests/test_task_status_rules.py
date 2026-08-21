@@ -26,7 +26,7 @@ def test_destination_research_request_does_not_require_ranking():
     assert statuses["ranking"] == "not_required"
 
 
-def test_mark_required_tasks_preserves_stale_status():
+def test_mark_required_tasks_keeps_stale_status():
     statuses = mark_required_tasks(
         ["flight"],
         {

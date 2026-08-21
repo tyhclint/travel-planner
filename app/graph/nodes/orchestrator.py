@@ -1,5 +1,3 @@
-from typing import Any
-
 from pydantic import ValidationError
 
 from app.domain.models.errors import AgentError, OrchestratorError

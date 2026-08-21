@@ -1,6 +1,12 @@
+from typing import Any, Mapping
+
 from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
-from app.domain.models.status import RUNNABLE_TASK_STATUSES, TaskName, TaskStatus, normalize_task_status
-from app.graph.state import TravelState
+from app.domain.models.status import (
+    RUNNABLE_TASK_STATUSES,
+    TaskName,
+    TaskStatus,
+    normalize_task_status,
+)
 
 MAX_ORCHESTRATION_STEPS = 10
 
@@ -13,16 +19,9 @@ ROUTE_TO_TASK: dict[OrchestratorRoute, TaskName | None] = {
     "response_agent": None,
 }
 
-PRESERVE_CONSTRAINTS: dict[TaskName, str] = {
-    "flight": "preserve_flights",
-    "accommodation": "preserve_accommodation",
-    "destination_research": "preserve_destination_research",
-    "itinerary": "preserve_itinerary",
-}
-
 
 def deterministic_guardrail_decision(
-    state: TravelState,
+    state: Mapping[str, Any],
     orchestration_steps: int,
 ) -> OrchestratorDecision | None:
     """Return a mandatory deterministic decision for hard-stop or clarification cases."""
@@ -46,7 +45,7 @@ def deterministic_guardrail_decision(
 
 
 def apply_deterministic_policy(
-    state: TravelState,
+    state: Mapping[str, Any],
     decision: OrchestratorDecision,
 ) -> OrchestratorDecision:
     """Reject unsafe LLM decisions and replace them with deterministic fallback routing."""
@@ -61,9 +60,6 @@ def apply_deterministic_policy(
         if task_name is None:
             continue
 
-        if is_preserved_completed_task(state, task_name, statuses):
-            return fallback_decision(state, state.get("orchestration_steps", 0))
-
         if statuses[task_name] == "completed" and task_name not in rerun_tasks:
             return fallback_decision(state, state.get("orchestration_steps", 0))
 
@@ -71,7 +67,7 @@ def apply_deterministic_policy(
 
 
 def fallback_decision(
-    state: TravelState,
+    state: Mapping[str, Any],
     orchestration_steps: int,
 ) -> OrchestratorDecision:
     """Choose the next route using the deterministic task-status policy."""
@@ -113,17 +109,3 @@ def fallback_decision(
 def has_runnable_required_work(statuses: dict[TaskName, TaskStatus]) -> bool:
     """Return whether any task is pending or stale."""
     return any(status in RUNNABLE_TASK_STATUSES for status in statuses.values())
-
-
-def is_preserved_completed_task(
-    state: TravelState,
-    task_name: TaskName,
-    statuses: dict[TaskName, TaskStatus],
-) -> bool:
-    """Return whether a completed task is protected by a preservation constraint."""
-    preserve_key = PRESERVE_CONSTRAINTS.get(task_name)
-    return bool(
-        preserve_key
-        and state.get("constraints", {}).get(preserve_key)
-        and statuses[task_name] == "completed"
-    )

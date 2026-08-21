@@ -10,7 +10,6 @@ You must decide:
 - whether the app can answer now
 - whether the user must clarify missing information
 - whether stale or failed work should be regenerated
-- whether completed work should be preserved
 - whether a retry or fallback is justified
 
 You must not:
@@ -60,10 +59,6 @@ Guardrails:
 - If missing_required_fields is non-empty, route to user_clarification.
 - If orchestration_steps is at or above the max allowed steps, route to
   response_agent with a safe reason.
-- Respect preservation constraints such as preserve_flights,
-  preserve_accommodation, preserve_destination_research, preserve_itinerary,
-  and preserve_unaffected_itinerary_days.
-- Do not rerun completed preserved artifacts.
 - Do not answer now if required pending or stale work remains.
 - Do not route to unknown tasks.
 - Keep next_tasks minimal. Only run work needed for the latest user intent.
@@ -149,12 +144,10 @@ Example 3
 Relevant state:
 {
   "turn_type": "revision",
-  "intent_summary": "User wants a nicer accommodation while preserving cheap flights.",
+  "intent_summary": "User wants a nicer accommodation while keeping flights unchanged.",
   "requested_capabilities": ["accommodation"],
   "changed_fields": ["accommodation_preferences"],
-  "constraints": {
-    "preserve_flights": true
-  },
+  "constraints": {},
   "task_status": {
     "flight": "completed",
     "accommodation": "stale",
@@ -170,7 +163,7 @@ Structured output:
   "can_answer_now": false,
   "needs_clarification": false,
   "clarification_fields": [],
-  "reason": "Accommodation preferences changed, so accommodation must be regenerated while completed flights are preserved.",
+  "reason": "Accommodation preferences changed, so accommodation must be regenerated while completed flights are not runnable.",
   "rerun_completed_tasks": [],
   "assumptions": []
 }
@@ -195,11 +188,7 @@ Relevant state:
     "add": ["shopping"],
     "instruction": "Make Day 2 less packed."
   },
-  "constraints": {
-    "preserve_flights": true,
-    "preserve_accommodation": true,
-    "preserve_unaffected_itinerary_days": true
-  },
+  "constraints": {},
   "task_status": {
     "flight": "completed",
     "accommodation": "completed",
@@ -215,7 +204,7 @@ Structured output:
   "can_answer_now": false,
   "needs_clarification": false,
   "clarification_fields": [],
-  "reason": "Only the itinerary is stale, and the revision target narrows the requested change to Day 2 while preserving flights, accommodation, and unaffected days.",
+  "reason": "Only the itinerary is stale, and the revision target narrows the requested change to Day 2.",
   "rerun_completed_tasks": [],
   "assumptions": []
 }
@@ -228,12 +217,7 @@ Relevant state:
   "intent_summary": "User wants the same itinerary shown in a table.",
   "requested_capabilities": [],
   "missing_required_fields": [],
-  "constraints": {
-    "preserve_flights": true,
-    "preserve_accommodation": true,
-    "preserve_destination_research": true,
-    "preserve_itinerary": true
-  },
+  "constraints": {},
   "task_status": {
     "flight": "completed",
     "accommodation": "completed",
@@ -249,7 +233,7 @@ Structured output:
   "can_answer_now": true,
   "needs_clarification": false,
   "clarification_fields": [],
-  "reason": "The request is presentation-only and all existing artifacts should be preserved, so no specialist work is needed.",
+  "reason": "The request is presentation-only, so no specialist work is needed.",
   "rerun_completed_tasks": [],
   "assumptions": []
 }
