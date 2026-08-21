@@ -58,6 +58,8 @@ class TurnConstraintPatch(TypedDict, total=False):
 
 
 class TravelState(TypedDict, total=False):
+    """Overall Stategraph State"""
+    
     messages: Annotated[list[AnyMessage], add_messages]
     
     conversation_summary: str
@@ -94,10 +96,10 @@ class TravelState(TypedDict, total=False):
     task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
     dispatched_tasks: list[str]
     orchestration_steps: int
+    orchestrator_decision: dict
     revision_attempts: int
     errors: Annotated[list[AgentError], add]
     fan_in_notes: Annotated[list[str], add]
 
     final_response: str
-
 

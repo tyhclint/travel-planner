@@ -22,6 +22,7 @@ REQUESTABLE_TASK_STATUSES: set[TaskStatus] = {"not_required", "failed"}
 def normalize_task_status(
     current_status: dict[TaskName, TaskStatus] | None = None,
 ) -> dict[TaskName, TaskStatus]:
+    """ Create a normalized task status dictionary, filling in any missing tasks with the default status. """
     statuses = DEFAULT_TASK_STATUS.copy()
     if current_status:
         statuses.update(current_status)
