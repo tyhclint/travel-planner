@@ -12,6 +12,7 @@ from app.domain.models.flights import FlightOption
 from app.domain.models.itinerary import Itinerary
 from app.domain.models.preferences import Style, TravelPreferences
 from app.domain.models.recommendations import DestinationRecommendation
+from app.domain.models.orchestrator import OrchestratorRoute, OrchestratorRerunTask
 from app.domain.models.status import TaskName, TaskStatus
 from app.domain.models.trip import TripRequirements
 from app.domain.models.turn_interpreter import RevisionTarget
@@ -48,6 +49,15 @@ class TravelPreferencePatch(TypedDict, total=False):
     activity_pace: Literal["relaxed", "balanced", "packed"]
     interests: list[str]
 
+
+class OrchestratorDecisionPatch(TypedDict, total=False):
+    next_tasks: list[OrchestratorRoute]
+    can_answer_now: bool
+    needs_clarification: bool
+    clarification_fields: list[str]
+    reason: str
+    rerun_completed_tasks: list[OrchestratorRerunTask]
+    assumptions: list[str]
 
 class TurnConstraintPatch(TypedDict, total=False):
     pass
@@ -93,7 +103,7 @@ class TravelState(TypedDict, total=False):
     task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
     dispatched_tasks: list[str]
     orchestration_steps: int
-    orchestrator_decision: dict
+    orchestrator_decision: OrchestratorDecisionPatch
     revision_attempts: int
     errors: Annotated[list[AgentError], add]
     fan_in_notes: Annotated[list[str], add]
