@@ -1,0 +1,136 @@
+version: "3.9"
+
+services:
+  # -------------------------------------------------------------
+  # MongoDB Local Persistence
+  # -------------------------------------------------------------
+  mongo:
+    image: mongo:7.0
+    container_name: travel-planner-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: travel_planner
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - travel-planner-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # DB Service (FastAPI + MongoDB / Motor)
+  # -------------------------------------------------------------
+  db-service:
+    build:
+      context: ./services/db-service
+      dockerfile: Dockerfile
+    container_name: travel-planner-db-service
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB_NAME=travel_planner
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - travel-planner-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # -------------------------------------------------------------
+  # Trip Service (FastAPI + Trip.com Scraping / API Provider)
+  # -------------------------------------------------------------
+  trip-service:
+    build:
+      context: ./services/trip-service
+      dockerfile: Dockerfile
+    container_name: travel-planner-trip-service
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - ENABLE_LIVE_SCRAPING=false
+      - TRIP_COM_BASE_URL=https://www.trip.com
+    networks:
+      - travel-planner-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # -------------------------------------------------------------
+  # Agent Service (FastAPI + LangGraph Multi-turn Engine)
+  # -------------------------------------------------------------
+  agent-service:
+    build:
+      context: ./services/agent-service
+      dockerfile: Dockerfile
+    container_name: travel-planner-agent-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TRIP_SERVICE_URL=http://trip-service:8003
+      - DB_SERVICE_URL=http://db-service:8002
+    depends_on:
+      - trip-service
+      - db-service
+    networks:
+      - travel-planner-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # -------------------------------------------------------------
+  # API Gateway (FastAPI Entrypoint for Next.js)
+  # -------------------------------------------------------------
+  gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    container_name: travel-planner-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - AGENT_SERVICE_URL=http://agent-service:8001
+      - DB_SERVICE_URL=http://db-service:8002
+      - TRIP_SERVICE_URL=http://trip-service:8003
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","*"]
+    depends_on:
+      - agent-service
+      - trip-service
+      - db-service
+    networks:
+      - travel-planner-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  travel-planner-net:
+    driver: bridge
