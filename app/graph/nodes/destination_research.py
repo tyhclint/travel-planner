@@ -1,7 +1,7 @@
 from app.graph.state import TravelState
-from app.services.search.mock import MockSearchService
+from app.services.mcp.travel import MCPTravelService
 
-search_service = MockSearchService()
+search_service = MCPTravelService()
 
 
 def destination_research_node(state: TravelState):

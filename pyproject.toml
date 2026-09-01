@@ -24,6 +24,8 @@ dev = [
 
 [project.scripts]
 travel-planner = "main:main"
+travel-planner-chat = "app.cli:main"
+travel-planner-mcp = "app.services.mcp.server:main"
 
 [tool.ruff]
 line-length = 100

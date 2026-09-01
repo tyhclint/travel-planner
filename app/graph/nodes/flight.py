@@ -1,7 +1,7 @@
 from app.graph.state import TravelState
-from app.services.flights.mock import MockFlightService
+from app.services.mcp.travel import MCPTravelService
 
-flight_service = MockFlightService()
+flight_service = MCPTravelService()
 
 
 def flight_node(state: TravelState):
