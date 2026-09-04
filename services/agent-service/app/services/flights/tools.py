@@ -34,10 +34,12 @@ class FlightSearchArgs(BaseModel):
 
 
 def _format_kiwi_date(value: date) -> str:
+    """Format a Python date using the dd/mm/yyyy format expected by Kiwi."""
     return value.strftime("%d/%m/%Y")
 
 
 def _extract_kiwi_payload(raw_result: Any) -> Any:
+    """Extract structured payload data from possible LangChain tool result shapes."""
     if isinstance(raw_result, ToolMessage):
         if raw_result.artifact:
             return raw_result.artifact.get("structured_content", raw_result.artifact)
@@ -53,6 +55,7 @@ def _extract_kiwi_payload(raw_result: Any) -> Any:
 
 
 async def _get_kiwi_search_flight_tool() -> BaseTool:
+    """Load the Kiwi MCP tools and return only the flight search tool."""
     tools = await get_flight_mcp_tools()
     for mcp_tool in tools:
         if mcp_tool.name == "kiwi_search-flight":
@@ -77,7 +80,7 @@ async def search_flights(
     max_stops: int | None = None,
     price_to: int | None = None,
 ) -> dict[str, Any]:
-    """Search real flight itineraries using Kiwi.com."""
+    """Search real flight itineraries using Kiwi.com through the Kiwi MCP server."""
     kiwi_tool = await _get_kiwi_search_flight_tool()
 
     kiwi_args = {
