@@ -86,12 +86,17 @@ class TravelState(TypedDict, total=False):
     # Used by the orchestrator to ask for clarification before calling subagents.
     missing_required_fields: list[str]
 
+    #task status node
+    task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
+
+    #orchestrator fields
+    orchestration_steps: int
+    orchestrator_decision: OrchestratorDecisionPatch
 
     #subagent results
     flight_results: list[FlightOption]
     accommodation_results: list[AccommodationOption]
     destination_research_results: list[DestinationRecommendation]
-
     ranked_flights: list[FlightOption]
     ranked_accommodations: list[AccommodationOption]
     selected_flight: FlightOption | None
@@ -100,12 +105,13 @@ class TravelState(TypedDict, total=False):
     current_itinerary: Itinerary | None
     itinerary_version: int
 
-    task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
     dispatched_tasks: list[str]
-    orchestration_steps: int
-    orchestrator_decision: OrchestratorDecisionPatch
     revision_attempts: int
-    errors: Annotated[list[AgentError], add]
-    fan_in_notes: Annotated[list[str], add]
 
     final_response: str
+
+    #error logging
+    errors: Annotated[list[AgentError], add]
+
+    #might remove 
+    fan_in_notes: Annotated[list[str], add]

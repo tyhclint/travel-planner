@@ -1,5 +1,6 @@
 from pydantic import ValidationError
 
+from app.core.config import get_settings
 from app.domain.models.errors import AgentError, OrchestratorError
 from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
 from app.domain.orchestration.policy import (
@@ -12,7 +13,7 @@ from app.graph.state import TravelState
 from app.services.orchestration.llm import validated_llm_decision
 
 RouteName = OrchestratorRoute
-
+settings = get_settings()
 
 def orchestrator_node(state: TravelState):
     """Create and store the next validated orchestration decision."""
@@ -29,6 +30,8 @@ def orchestrator_node(state: TravelState):
         decision = validated_llm_decision(state, orchestration_steps)
         decision = apply_deterministic_policy(state, decision)
     except OrchestratorError as exc:
+        if settings.debug:
+            raise
         decision = fallback_decision(state, orchestration_steps)
         errors.append(
             AgentError(
