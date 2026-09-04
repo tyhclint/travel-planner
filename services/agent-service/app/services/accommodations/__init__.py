@@ -1,1 +1,1 @@
-"""Accommodation service package."""
+"""Accommodation service implementations."""

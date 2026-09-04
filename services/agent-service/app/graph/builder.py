@@ -42,7 +42,6 @@ def build_graph():
             "flight_agent": "flight_agent",
             "accommodation_agent": "accommodation_agent",
             "destination_research_agent": "destination_research_agent",
-            "ranking": "ranking",
             "itinerary_planner_agent": "itinerary_planner_agent",
             "user_clarification": "user_clarification",
             "response_agent": "response_agent",
@@ -51,7 +50,7 @@ def build_graph():
     builder.add_edge("flight_agent", "fan_in")
     builder.add_edge("accommodation_agent", "fan_in")
     builder.add_edge("destination_research_agent", "fan_in")
-    builder.add_edge("fan_in", "orchestrator")
+    builder.add_edge("fan_in", "ranking")
     builder.add_edge("ranking", "orchestrator")
     builder.add_edge("itinerary_planner_agent", "orchestrator")
     builder.add_edge("user_clarification", "response_agent")

@@ -5,18 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     environment: str = "development"
-    port: int = 8001
     openai_api_key: str | None = None
+    turn_interpreter_model: str = "gpt-4.1-mini"
+    orchestrator_model: str = "gpt-4.1-mini"
+    debug: bool = True
 
-    # Downstream microservices URLs
-    trip_service_url: str = "http://trip-service:8003"
-    db_service_url: str = "http://db-service:8002"
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 @lru_cache

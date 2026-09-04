@@ -1,1 +1,1 @@
-"""Domain models and business logic package."""
+"""Travel business rules and domain models."""

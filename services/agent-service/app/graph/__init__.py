@@ -1,1 +1,1 @@
-"""LangGraph graph definitions and state models."""
+"""LangGraph workflow layer."""
