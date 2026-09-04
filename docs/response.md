@@ -12,13 +12,13 @@
 
 Here is your full trip planned
 {
-    day 1:
-    day 2:
-    day 3:
+    day 1: {response}
+    day 2: {response}
+    day 3: {response}
 
 
-    flight suggestions:
-    hotels suggestions:
+    flight suggestions: {response}
+    hotels suggestions: {response}
     Other considerations: For example, the user wants to plan a 8 day trip to Beijing. In this case, since there are many days, the user could potentially consider to go to neighbouring cities around Beijing.
 }
 
