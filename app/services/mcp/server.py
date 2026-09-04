@@ -1,50 +1,54 @@
-"""Minimal JSON-RPC stdio server for MCP-capable clients."""
+"""MCP server exposing the travel planner directly to MCP-capable clients."""
 
 import json
-import sys
 from typing import Any
 
+from mcp.server.fastmcp import FastMCP
+
 from app.services.mcp.registry import get_local_registry
+from app.services.mcp.workflow import run_travel_turn
+
+mcp = FastMCP("travel-planner")
 
 
-def _send(request_id: Any, result: dict[str, Any]) -> None:
-    payload = json.dumps({"jsonrpc": "2.0", "id": request_id, "result": result})
-    encoded = payload.encode("utf-8")
-    sys.stdout.buffer.write(f"Content-Length: {len(encoded)}\r\n\r\n".encode("ascii"))
-    sys.stdout.buffer.write(encoded)
-    sys.stdout.buffer.flush()
+@mcp.tool()
+def plan_travel(message: str, thread_id: str = "mcp-default") -> str:
+    """Plan or revise a trip using the checkpointed LangGraph workflow.
+
+    Reuse the same thread_id for follow-up messages.
+    """
+    return run_travel_turn(message, thread_id)
+
+
+@mcp.tool()
+def list_travel_capabilities() -> str:
+    """List the lower-level travel capabilities used by the planner."""
+    return json.dumps([tool["name"] for tool in get_local_registry().list_tools()])
+
+
+@mcp.tool()
+def search_flights(requirements: dict[str, Any], preferences: dict[str, Any]) -> str:
+    """Directly search normalized flight options."""
+    values = get_local_registry().call_tool("travel.search_flights", {"requirements": requirements, "preferences": preferences})
+    return json.dumps(values)
+
+
+@mcp.tool()
+def search_accommodations(requirements: dict[str, Any], preferences: dict[str, Any]) -> str:
+    """Directly search normalized accommodation options."""
+    values = get_local_registry().call_tool("travel.search_accommodations", {"requirements": requirements, "preferences": preferences})
+    return json.dumps(values)
+
+
+@mcp.tool()
+def search_destination(requirements: dict[str, Any], preferences: dict[str, Any]) -> str:
+    """Directly search normalized destination recommendations."""
+    values = get_local_registry().call_tool("travel.search_destination", {"requirements": requirements, "preferences": preferences})
+    return json.dumps(values)
 
 
 def main() -> None:
-    registry = get_local_registry()
-    while True:
-        headers: dict[str, str] = {}
-        line = sys.stdin.buffer.readline()
-        if not line:
-            return
-        while line not in (b"\r\n", b"\n", b""):
-            key, _, value = line.decode("ascii").partition(":")
-            headers[key.lower().strip()] = value.strip()
-            line = sys.stdin.buffer.readline()
-        length = int(headers.get("content-length", "0"))
-        request = json.loads(sys.stdin.buffer.read(length))
-        request_id = request.get("id")
-        if request_id is None:
-            continue
-        method = request.get("method")
-        if method == "initialize":
-            _send(request_id, {"protocolVersion": "2024-11-05", "capabilities": {"tools": {}}, "serverInfo": {"name": "travel-planner", "version": "0.1.0"}})
-        elif method == "tools/list":
-            _send(request_id, {"tools": registry.list_tools()})
-        elif method == "tools/call":
-            params = request.get("params", {})
-            try:
-                value = registry.call_tool(params["name"], params.get("arguments", {}))
-                _send(request_id, {"content": [{"type": "text", "text": json.dumps(value)}], "isError": False})
-            except (KeyError, TypeError, ValueError) as exc:
-                _send(request_id, {"content": [{"type": "text", "text": str(exc)}], "isError": True})
-        else:
-            _send(request_id, {"error": f"Unsupported method: {method}"})
+    mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":

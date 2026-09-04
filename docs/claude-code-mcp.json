@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "travel-planner": {
+      "command": "uv",
+      "args": ["run", "travel-planner-mcp"],
+      "cwd": "/Users/bytedance/Desktop/travel-planner",
+      "env": {"UV_NATIVE_TLS": "true"}
+    }
+  }
+}
