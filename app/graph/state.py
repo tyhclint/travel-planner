@@ -12,6 +12,7 @@ from app.domain.models.flights import FlightOption
 from app.domain.models.itinerary import Itinerary
 from app.domain.models.preferences import Style, TravelPreferences
 from app.domain.models.recommendations import DestinationRecommendation
+from app.domain.models.orchestrator import OrchestratorRoute, OrchestratorRerunTask
 from app.domain.models.status import TaskName, TaskStatus
 from app.domain.models.trip import TripRequirements
 from app.domain.models.turn_interpreter import RevisionTarget
@@ -49,15 +50,22 @@ class TravelPreferencePatch(TypedDict, total=False):
     interests: list[str]
 
 
+class OrchestratorDecisionPatch(TypedDict, total=False):
+    next_tasks: list[OrchestratorRoute]
+    can_answer_now: bool
+    needs_clarification: bool
+    clarification_fields: list[str]
+    reason: str
+    rerun_completed_tasks: list[OrchestratorRerunTask]
+    assumptions: list[str]
+
 class TurnConstraintPatch(TypedDict, total=False):
-    preserve_flights: bool
-    preserve_accommodation: bool
-    preserve_destination_research: bool
-    preserve_itinerary: bool
-    preserve_unaffected_itinerary_days: bool
+    pass
 
 
 class TravelState(TypedDict, total=False):
+    """Overall Stategraph State"""
+    
     messages: Annotated[list[AnyMessage], add_messages]
     
     conversation_summary: str
@@ -75,14 +83,20 @@ class TravelState(TypedDict, total=False):
     changed_fields: list[ChangedField]
     revision_targets: list[RevisionTarget | dict]
     latest_feedback: dict
-    missing_required_fields: list[str] #for downstream orchestrator to know what to missing to ask user for clarification before calling subagents
+    # Used by the orchestrator to ask for clarification before calling subagents.
+    missing_required_fields: list[str]
 
+    #task status node
+    task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
+
+    #orchestrator fields
+    orchestration_steps: int
+    orchestrator_decision: OrchestratorDecisionPatch
 
     #subagent results
     flight_results: list[FlightOption]
     accommodation_results: list[AccommodationOption]
     destination_research_results: list[DestinationRecommendation]
-
     ranked_flights: list[FlightOption]
     ranked_accommodations: list[AccommodationOption]
     selected_flight: FlightOption | None
@@ -91,13 +105,13 @@ class TravelState(TypedDict, total=False):
     current_itinerary: Itinerary | None
     itinerary_version: int
 
-    task_status: Annotated[dict[TaskName, TaskStatus], merge_dicts]
     dispatched_tasks: list[str]
-    orchestration_steps: int
     revision_attempts: int
-    errors: Annotated[list[AgentError], add]
-    fan_in_notes: Annotated[list[str], add]
 
     final_response: str
 
+    #error logging
+    errors: Annotated[list[AgentError], add]
 
+    #might remove 
+    fan_in_notes: Annotated[list[str], add]

@@ -174,11 +174,7 @@ Example turn interpreter output:
     "activity_pace": "relaxed",
     "interests_to_add": ["shopping"]
   },
-  "constraints": {
-    "preserve_flights": true,
-    "preserve_accommodation": true,
-    "preserve_unaffected_itinerary_days": true
-  },
+  "constraints": {},
   "changed_fields": ["activity_preferences", "itinerary_day_2"],
   "revision_targets": [
     {
@@ -246,7 +242,6 @@ Guardrails:
 - If max orchestration steps exceeded, stop safely.
 - Only allow known next tasks.
 - Completed/non-stale tasks require justification before rerun.
-- Preserve constraints override LLM choices.
 - Retry counts prevent loops.
 - Response node should not run if required work is incomplete.
 
@@ -401,8 +396,6 @@ Support:
 - new itinerary generation
 - targeted day edits
 - whole-itinerary edits
-- preserve unaffected days
-- preserve flights/accommodation when requested
 - regenerate only affected parts where possible
 - increment `itinerary_version`
 - record assumptions and warnings
@@ -425,7 +418,6 @@ Orchestrator
 
 Itinerary agent
 -> revises Day 2
--> preserves other days
 -> returns complete updated itinerary
 
 Orchestrator
@@ -434,7 +426,7 @@ Orchestrator
 
 ## Phase 9: Multi-Turn Persistence
 
-Goal: preserve trip state across turns.
+Goal: retain trip state across turns.
 
 Use LangGraph checkpointers.
 
@@ -462,7 +454,7 @@ Tests:
 
 - Create trip, then revise Day 2 using same `thread_id`.
 - Previous itinerary is restored.
-- Flight and accommodation are preserved during itinerary-only revision.
+- Itinerary-only revision does not rerun flight or accommodation.
 - Hotel change can mark itinerary stale without rerunning flight.
 
 ## Phase 10: FastAPI Streaming Contract
