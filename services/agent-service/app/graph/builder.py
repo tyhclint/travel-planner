@@ -2,11 +2,12 @@ from functools import lru_cache
 
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.prebuilt import ToolNode
 
 from app.graph.nodes.accommodation import accommodation_node
 from app.graph.nodes.destination_research import destination_research_node
 from app.graph.nodes.fan_in import fan_in_node
-from app.graph.nodes.flight import flight_node
+from app.graph.nodes.flight import flight_node, route_flight_agent
 from app.graph.nodes.itinerary_planner import itinerary_planner_node
 from app.graph.nodes.orchestrator import orchestrator_node, route_orchestrator
 from app.graph.nodes.ranking import ranking_node
@@ -15,6 +16,7 @@ from app.graph.nodes.task_status import task_status_node
 from app.graph.nodes.turn_interpreter import turn_interpreter_node
 from app.graph.nodes.user_clarification import user_clarification_node
 from app.graph.state import TravelState
+from app.services.flights.tools import search_flights
 
 
 def build_graph():
@@ -24,6 +26,7 @@ def build_graph():
     builder.add_node("task_status", task_status_node)
     builder.add_node("orchestrator", orchestrator_node)
     builder.add_node("flight_agent", flight_node)
+    builder.add_node("flight_tools", ToolNode([search_flights]))
     builder.add_node("accommodation_agent", accommodation_node)
     builder.add_node("destination_research_agent", destination_research_node)
     builder.add_node("fan_in", fan_in_node)
@@ -47,7 +50,15 @@ def build_graph():
             "response_agent": "response_agent",
         },
     )
-    builder.add_edge("flight_agent", "fan_in")
+    builder.add_conditional_edges(
+        "flight_agent",
+        route_flight_agent,
+        {
+            "flight_tools": "flight_tools",
+            "fan_in": "fan_in",
+        },
+    )
+    builder.add_edge("flight_tools", "flight_agent")
     builder.add_edge("accommodation_agent", "fan_in")
     builder.add_edge("destination_research_agent", "fan_in")
     builder.add_edge("fan_in", "ranking")
