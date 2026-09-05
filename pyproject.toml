@@ -9,6 +9,7 @@ dependencies = [
     "langchain-core>=0.3.0",
     "langchain-openai>=0.2.0",
     "langgraph>=0.2.0",
+    "mcp>=1.0.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
     "python-dotenv>=1.0.1",
@@ -22,6 +23,11 @@ members = [
     "services/db-service",
     "services/trip-service",
 ]
+
+[project.scripts]
+travel-planner = "main:main"
+travel-planner-chat = "app.cli:main"
+travel-planner-mcp = "app.services.mcp.server:main"
 
 [tool.ruff]
 line-length = 100

@@ -1,7 +1,7 @@
 from app.graph.state import TravelState
-from app.services.accommodations.mock import MockAccommodationService
+from app.services.mcp.travel import MCPTravelService
 
-accommodation_service = MockAccommodationService()
+accommodation_service = MCPTravelService()
 
 
 def accommodation_node(state: TravelState):
