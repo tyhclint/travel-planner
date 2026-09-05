@@ -1,3 +1,5 @@
+import pytest
+
 from app.domain.models.errors import OrchestratorError
 from app.domain.models.orchestrator import OrchestratorDecision
 from app.domain.orchestration.policy import MAX_ORCHESTRATION_STEPS
@@ -118,7 +120,7 @@ def test_orchestrator_node_applies_policy_to_llm_decision(monkeypatch):
     assert result["orchestrator_decision"]["next_tasks"] == ["flight_agent"]
 
 
-def test_orchestrator_node_falls_back_and_records_error_when_llm_fails(monkeypatch):
+def test_orchestrator_node_raises_when_llm_fails_in_debug_mode(monkeypatch):
     def failing_llm_decision(state, orchestration_steps):
         raise OrchestratorError("No valid structured decision.")
 
@@ -126,6 +128,25 @@ def test_orchestrator_node_falls_back_and_records_error_when_llm_fails(monkeypat
         "app.graph.nodes.orchestrator.validated_llm_decision",
         failing_llm_decision,
     )
+    monkeypatch.setattr("app.graph.nodes.orchestrator.settings.debug", True)
+
+    with pytest.raises(OrchestratorError):
+        orchestrator_node(
+            {
+                "task_status": {"accommodation": "pending"},
+            }
+        )
+
+
+def test_orchestrator_node_falls_back_when_llm_fails_in_production_mode(monkeypatch):
+    def failing_llm_decision(state, orchestration_steps):
+        raise OrchestratorError("No valid structured decision.")
+
+    monkeypatch.setattr(
+        "app.graph.nodes.orchestrator.validated_llm_decision",
+        failing_llm_decision,
+    )
+    monkeypatch.setattr("app.graph.nodes.orchestrator.settings.debug", False)
 
     result = orchestrator_node(
         {

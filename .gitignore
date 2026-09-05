@@ -1,6 +1,73 @@
-.venv/
-.uv-cache/
+# Python bytecode & cache
 __pycache__/
-.pytest_cache/
-.ruff_cache/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments & Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.uv-cache/
+.uv/
+
+# Environment Variables & Secrets
 .env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Linters & Formatters
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Build & Packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Logs & Databases
+*.log
+logs/
+mongo_data/
+*.sqlite
+*.sqlite3
+*.db
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini

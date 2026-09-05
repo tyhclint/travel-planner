@@ -1,7 +1,7 @@
 [project]
 name = "travel-planner"
 version = "0.1.0"
-description = "LangGraph travel planner microservice skeleton"
+description = "LangGraph travel planner microservices system"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -16,11 +16,12 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
 ]
 
-[dependency-groups]
-dev = [
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.24.0",
-    "ruff>=0.6.0",
+[tool.uv.workspace]
+members = [
+    "services/agent-service",
+    "services/gateway",
+    "services/db-service",
+    "services/trip-service",
 ]
 
 [project.scripts]

@@ -14,10 +14,32 @@ class FakeTurnInterpreterLLM:
         return self.output
 
 
+class FakeOrchestratorLLM:
+    def __init__(self, outputs):
+        self.outputs = list(outputs)
+
+    def with_structured_output(self, schema):
+        return self
+
+    def invoke(self, messages):
+        if not self.outputs:
+            raise AssertionError("No fake orchestrator decisions remain.")
+
+        return self.outputs.pop(0)
+
+
 def _mock_turn_interpreter(monkeypatch, output):
     monkeypatch.setattr(
         "app.graph.nodes.turn_interpreter.get_turn_interpreter_llm",
         lambda: FakeTurnInterpreterLLM(output),
+    )
+
+
+def _mock_orchestrator(monkeypatch, outputs):
+    fake_llm = FakeOrchestratorLLM(outputs)
+    monkeypatch.setattr(
+        "app.services.orchestration.llm.get_orchestrator_llm",
+        lambda: fake_llm,
     )
 
 
@@ -55,6 +77,28 @@ def test_graph_builds_mock_trip_response(monkeypatch):
             ],
         }
     )
+    _mock_orchestrator(
+        monkeypatch,
+        [
+            {
+                "next_tasks": [
+                    "flight_agent",
+                    "accommodation_agent",
+                    "destination_research_agent",
+                ],
+                "reason": "Independent search tasks can run together.",
+            },
+            {
+                "next_tasks": ["itinerary_planner_agent"],
+                "reason": "Itinerary work is pending after upstream tasks completed.",
+            },
+            {
+                "next_tasks": ["response_agent"],
+                "can_answer_now": True,
+                "reason": "All requested planning work is complete.",
+            },
+        ],
+    )
     graph = build_graph()
 
     result = graph.invoke(
@@ -90,6 +134,20 @@ def test_graph_routes_flight_only_request_without_accommodation(monkeypatch):
             "changed_fields": ["origin", "destination"],
         }
     )
+    _mock_orchestrator(
+        monkeypatch,
+        [
+            {
+                "next_tasks": ["flight_agent"],
+                "reason": "Flight work is pending.",
+            },
+            {
+                "next_tasks": ["response_agent"],
+                "can_answer_now": True,
+                "reason": "The requested flight search is complete.",
+            },
+        ],
+    )
     graph = build_graph()
 
     result = graph.invoke(
@@ -120,6 +178,20 @@ def test_graph_routes_accommodation_only_request_without_flight(monkeypatch):
             },
             "changed_fields": ["destination"],
         }
+    )
+    _mock_orchestrator(
+        monkeypatch,
+        [
+            {
+                "next_tasks": ["accommodation_agent"],
+                "reason": "Accommodation work is pending.",
+            },
+            {
+                "next_tasks": ["response_agent"],
+                "can_answer_now": True,
+                "reason": "The requested accommodation search is complete.",
+            },
+        ],
     )
     graph = build_graph()
 
