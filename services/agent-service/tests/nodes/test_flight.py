@@ -45,26 +45,44 @@ def test_flight_node_populates_results_after_finish_tool_message():
                         {
                             "provider": "kiwi",
                             "result": {
-                                "data": [
+                                "query": "Singapore to Tokyo",
+                                "currency": "USD",
+                                "resultsCount": 1,
+                                "itineraries": [
                                     {
                                         "id": "kiwi-1",
-                                        "airlines": ["TR"],
-                                        "flyFrom": "SIN",
-                                        "flyTo": "NRT",
-                                        "local_departure": "2026-10-01T08:00:00+00:00",
-                                        "local_arrival": "2026-10-01T15:00:00+00:00",
-                                        "duration": {"total": 25200},
-                                        "route": [
-                                            {
-                                                "flyFrom": "SIN",
-                                                "flyTo": "NRT",
-                                                "airline": "TR",
-                                            }
-                                        ],
                                         "price": 320,
-                                        "deep_link": "https://example.test/booking",
+                                        "priceFormatted": "320 USD",
+                                        "totalDurationSeconds": 25200,
+                                        "bookingUrl": "https://example.test/booking",
+                                        "baggage": {
+                                            "personalItem": 1,
+                                            "cabinBag": 1,
+                                            "checkedBag": 0,
+                                        },
+                                        "outbound": {
+                                            "from": "SIN",
+                                            "to": "NRT",
+                                            "departureTime": "2026-10-01T08:00:00+00:00",
+                                            "arrivalTime": "2026-10-01T15:00:00+00:00",
+                                            "durationSeconds": 25200,
+                                            "stops": 0,
+                                            "route": ["SIN", "NRT"],
+                                            "cabinClass": "Economy",
+                                            "segments": [
+                                                {
+                                                    "from": "SIN",
+                                                    "to": "NRT",
+                                                    "carrier": "TR",
+                                                    "carrierName": "Scoot",
+                                                    "flightNumber": "TR808",
+                                                    "cabinClass": "Economy",
+                                                }
+                                            ],
+                                        },
                                     }
-                                ]
+                                ],
+                                "searchTimeMs": 123,
                             },
                         }
                     ),
@@ -93,6 +111,7 @@ def test_flight_node_populates_results_after_finish_tool_message():
     assert result["task_status"] == {"flight": "completed"}
     assert len(result["flight_results"]) == 1
     assert result["flight_results"][0].id == "kiwi-1"
+    assert result["flight_results"][0].airline == "Scoot"
     assert result["flight_results"][0].duration_minutes == 420
     assert result["flight_results"][0].provider == "kiwi"
 

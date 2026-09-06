@@ -10,6 +10,7 @@ from app.domain.models.errors import AgentError
 from app.domain.models.flights import CabinClass, FlightOption
 from app.graph.state import TravelState
 from app.prompts.flight import FLIGHT_AGENT_SYSTEM_PROMPT, FLIGHT_AGENT_USER_PROMPT
+from app.services.flights.kiwi import KiwiItineraryDict, KiwiLegDict
 from app.services.flights.tools import finish_flight_search, search_flights
 
 MIN_USABLE_FLIGHT_OPTIONS = 3
@@ -179,8 +180,20 @@ def _parse_flight_tool_messages(messages: list[Any]) -> list[FlightOption]:
 
     for message in _tool_messages(messages, "search_flights"):
         payload = _load_tool_payload(message)
-        for item in _flight_items(payload):
-            option = _kiwi_item_to_flight_option(item)
+        if not isinstance(payload, dict):
+            continue
+
+        result = payload.get("result", {})
+        if not isinstance(result, dict):
+            continue
+
+        currency = str(result.get("currency") or "USD").upper()
+        itineraries = result.get("itineraries", [])
+        if not isinstance(itineraries, list):
+            continue
+
+        for itinerary in itineraries:
+            option = _kiwi_itinerary_to_flight_option(itinerary, currency)
             if option is None or option.id in seen_ids:
                 continue
             options.append(option)
@@ -204,72 +217,49 @@ def _load_tool_payload(message: ToolMessage) -> Any:
     return message.content
 
 
-def _flight_items(payload: Any) -> list[dict[str, Any]]:
-    """Find the list of provider flight result items inside common payload shapes."""
-    if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, dict)]
-
-    if not isinstance(payload, dict):
-        return []
-
-    result = payload.get("result", payload)
-    if isinstance(result, list):
-        return [item for item in result if isinstance(item, dict)]
-
-    if not isinstance(result, dict):
-        return []
-
-    for key in ("data", "results", "flights", "itineraries"):
-        value = result.get(key)
-        if isinstance(value, list):
-            return [item for item in value if isinstance(item, dict)]
-
-    return []
-
-
-def _kiwi_item_to_flight_option(
-    item: dict[str, Any],
+def _kiwi_itinerary_to_flight_option(
+    itinerary: KiwiItineraryDict,
+    currency: str,
 ) -> FlightOption | None:
-    """Convert one Kiwi result item into the app's FlightOption model."""
-    route = item.get("route") if isinstance(item.get("route"), list) else []
-    departure_time = _parse_datetime(
-        item.get("local_departure")
-        or item.get("utc_departure")
-        or _first_route_value(route, "local_departure")
-        or _first_route_value(route, "utc_departure")
-    )
-    arrival_time = _parse_datetime(
-        item.get("local_arrival")
-        or item.get("utc_arrival")
-        or _last_route_value(route, "local_arrival")
-        or _last_route_value(route, "utc_arrival")
-    )
+    """Convert one validated Kiwi itinerary into the app's FlightOption model."""
+    outbound = itinerary.get("outbound")
+    if not isinstance(outbound, dict):
+        return None
+
+    route = outbound.get("route") if isinstance(outbound.get("route"), list) else []
+    departure_time = _parse_datetime(outbound.get("departureTime"))
+    arrival_time = _parse_datetime(outbound.get("arrivalTime"))
     if departure_time is None or arrival_time is None:
         return None
 
-    flight_id = item.get("id") or item.get("booking_token") or item.get("deep_link")
-    origin = item.get("flyFrom") or _first_route_value(route, "flyFrom")
-    destination = item.get("flyTo") or _last_route_value(route, "flyTo")
-    price = item.get("price")
+    flight_id = itinerary.get("id") or itinerary.get("bookingUrl")
+    origin = outbound.get("from") or _route_endpoint(route, first=True)
+    destination = outbound.get("to") or _route_endpoint(route, first=False)
+    price = itinerary.get("price")
     if not flight_id or not origin or not destination or price is None:
         return None
 
     try:
         return FlightOption(
             id=str(flight_id),
-            airline=_airline_name(item, route),
+            airline=_airline_name(itinerary, outbound),
             origin=str(origin),
             destination=str(destination),
             departure_time=departure_time,
             arrival_time=arrival_time,
-            duration_minutes=_duration_minutes(item, departure_time, arrival_time),
-            stops=_stop_count(item, route),
-            cabin_class=_cabin_class(),
-            baggage_description=_baggage_description(item),
+            duration_minutes=_duration_minutes(
+                itinerary,
+                outbound,
+                departure_time,
+                arrival_time,
+            ),
+            stops=_stop_count(outbound),
+            cabin_class=_cabin_class(outbound),
+            baggage_description=_baggage_description(itinerary),
             total_price=float(price),
-            currency=str(item.get("currency") or "USD").upper(),
+            currency=currency,
             provider="kiwi",
-            booking_url=item.get("deep_link"),
+            booking_url=itinerary.get("bookingUrl"),
         )
     except (KeyError, TypeError, ValueError, ValidationError):
         return None
@@ -289,79 +279,82 @@ def _parse_datetime(value: Any) -> datetime | None:
 
 
 def _duration_minutes(
-    item: dict[str, Any],
+    itinerary: KiwiItineraryDict,
+    outbound: KiwiLegDict,
     departure_time: datetime,
     arrival_time: datetime,
 ) -> int:
-    """Resolve itinerary duration in minutes from provider data or timestamps."""
-    duration = item.get("duration")
-    raw_duration = None
-    if isinstance(duration, dict):
-        raw_duration = duration.get("total") or duration.get("departure")
-    elif isinstance(duration, (int, float)):
-        raw_duration = duration
-
+    """Resolve itinerary duration in minutes from Kiwi seconds or timestamps."""
+    raw_duration = itinerary.get("totalDurationSeconds") or outbound.get("durationSeconds")
     if raw_duration is not None:
-        duration_value = int(raw_duration)
-        if duration_value > 72 * 60:
-            return max(round(duration_value / 60), 1)
-        return max(duration_value, 1)
+        return max(round(int(raw_duration) / 60), 1)
 
     return max(round((arrival_time - departure_time).total_seconds() / 60), 1)
 
 
-def _stop_count(item: dict[str, Any], route: list[Any]) -> int:
-    """Resolve the number of stops from explicit provider data or route legs."""
-    stops = item.get("stops")
+def _stop_count(outbound: KiwiLegDict) -> int:
+    """Resolve the outbound stop count from Kiwi leg data."""
+    stops = outbound.get("stops")
     if isinstance(stops, int):
         return max(stops, 0)
 
+    route = outbound.get("route") if isinstance(outbound.get("route"), list) else []
     return max(len(route) - 1, 0)
 
 
-def _airline_name(item: dict[str, Any], route: list[Any]) -> str:
-    """Resolve a display airline name from top-level fields or the first route leg."""
-    airline = item.get("airline")
-    if isinstance(airline, str) and airline:
-        return airline
+def _airline_name(itinerary: KiwiItineraryDict, outbound: KiwiLegDict) -> str:
+    """Resolve a display airline name from the first Kiwi segment."""
+    segments = outbound.get("segments")
+    if isinstance(segments, list):
+        names = [
+            str(segment.get("carrierName") or segment.get("carrier"))
+            for segment in segments
+            if isinstance(segment, dict) and (segment.get("carrierName") or segment.get("carrier"))
+        ]
+        if names:
+            return ", ".join(dict.fromkeys(names))
 
-    airlines = item.get("airlines")
-    if isinstance(airlines, list) and airlines:
-        return ", ".join(str(value) for value in airlines if value)
-
-    route_airline = _first_route_value(route, "airline")
-    if route_airline:
-        return str(route_airline)
+    itinerary_id = itinerary.get("id")
+    if itinerary_id:
+        return f"Kiwi itinerary {itinerary_id}"
 
     return "Unknown airline"
 
 
-def _cabin_class() -> CabinClass:
-    """Return the default cabin class for parsed provider results."""
+def _cabin_class(outbound: KiwiLegDict) -> CabinClass:
+    """Normalize Kiwi cabin class labels into the app's CabinClass literals."""
+    cabin_class = outbound.get("cabinClass")
+    if not isinstance(cabin_class, str):
+        return "economy"
+
+    normalized = cabin_class.lower().replace(" ", "_")
+    if normalized in ("economy", "premium_economy", "business", "first"):
+        return normalized
+
     return "economy"
 
 
-def _baggage_description(item: dict[str, Any]) -> str | None:
-    """Return a short baggage note when the provider exposes baggage pricing."""
-    bags_price = item.get("bags_price")
-    if isinstance(bags_price, dict) and bags_price:
-        return "Baggage prices available from provider"
+def _baggage_description(item: KiwiItineraryDict) -> str | None:
+    """Return a short baggage note from Kiwi included baggage counts."""
+    baggage = item.get("baggage")
+    if isinstance(baggage, dict):
+        personal = int(baggage.get("personalItem") or 0)
+        cabin = int(baggage.get("cabinBag") or 0)
+        checked = int(baggage.get("checkedBag") or 0)
+        return (
+            f"Included bags: personal item x{personal}, "
+            f"cabin bag x{cabin}, checked bag x{checked}"
+        )
     return None
 
 
-def _first_route_value(route: list[Any], key: str) -> Any:
-    """Return the first truthy value for a key across provider route legs."""
-    for leg in route:
-        if isinstance(leg, dict) and leg.get(key):
-            return leg[key]
-    return None
-
-
-def _last_route_value(route: list[Any], key: str) -> Any:
-    """Return the last truthy value for a key across provider route legs."""
-    for leg in reversed(route):
-        if isinstance(leg, dict) and leg.get(key):
-            return leg[key]
+def _route_endpoint(route: list[Any], *, first: bool) -> Any:
+    """Return the first or last airport code from a Kiwi route list."""
+    if not route:
+        return None
+    value = route[0] if first else route[-1]
+    if value:
+        return value
     return None
 
 

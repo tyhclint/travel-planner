@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -83,3 +85,65 @@ class KiwiSearchFlightsOutput(BaseModel):
     itineraries: list[KiwiItineraryOutput] = Field(default_factory=list)
     searchTimeMs: int = 0
     error: str | None = None
+
+
+class KiwiBaggageDict(TypedDict, total=False):
+    """Dict shape for dumped Kiwi baggage output."""
+
+    personalItem: int
+    cabinBag: int
+    checkedBag: int
+
+
+KiwiSegmentDict = TypedDict(
+    "KiwiSegmentDict",
+    {
+        "from": str | None,
+        "to": str | None,
+        "fromCity": str | None,
+        "toCity": str | None,
+        "fromName": str | None,
+        "toName": str | None,
+        "fromCountry": str | None,
+        "toCountry": str | None,
+        "departureTime": str | None,
+        "arrivalTime": str | None,
+        "durationSeconds": int | None,
+        "carrier": str | None,
+        "carrierName": str | None,
+        "flightNumber": str | None,
+        "cabinClass": str | None,
+    },
+    total=False,
+)
+
+
+KiwiLegDict = TypedDict(
+    "KiwiLegDict",
+    {
+        "from": str | None,
+        "to": str | None,
+        "departureTime": str | None,
+        "arrivalTime": str | None,
+        "durationSeconds": int | None,
+        "stops": int | None,
+        "route": list[str],
+        "cabinClass": str | None,
+        "segments": list[KiwiSegmentDict],
+    },
+    total=False,
+)
+
+
+class KiwiItineraryDict(TypedDict, total=False):
+    """Dict shape for one dumped Kiwi itinerary output."""
+
+    id: str | None
+    price: float | None
+    priceFormatted: str | None
+    totalDurationSeconds: int | None
+    bookingUrl: str | None
+    imageId: str | None
+    baggage: KiwiBaggageDict | None
+    outbound: KiwiLegDict | None
+    inbound: KiwiLegDict | None
