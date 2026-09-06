@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from app.services.mcp.registry import get_local_registry
 from app.services.mcp.workflow import run_travel_turn
 
+
 mcp = FastMCP("travel-planner")
 
 

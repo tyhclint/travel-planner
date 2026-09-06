@@ -9,6 +9,7 @@ from app.domain.models.trip import TripRequirements
 from app.services.accommodations.mock import MockAccommodationService
 from app.services.flights.mock import MockFlightService
 from app.services.search.mock import MockSearchService
+from app.services.chroma import get_chroma_client
 
 ToolHandler = Callable[[dict[str, Any]], list[dict[str, Any]]]
 
