@@ -3,8 +3,10 @@ from typing import Any, Literal
 
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import BaseTool, tool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
+from app.services.flights.errors import KiwiPayloadValidationError
+from app.services.flights.kiwi import KiwiSearchFlightsOutput
 from app.services.flights.mcp import get_flight_mcp_tools
 
 CabinClassInput = Literal["economy", "premium_economy", "business", "first"]
@@ -107,7 +109,17 @@ async def search_flights(
         kiwi_args["price_to"] = price_to
 
     raw_result = await kiwi_tool.ainvoke(kiwi_args)
-    return {"provider": "kiwi", "result": _extract_kiwi_payload(raw_result)}
+    payload = _extract_kiwi_payload(raw_result)
+    try:
+        validated_payload = KiwiSearchFlightsOutput.model_validate(payload)
+    except ValidationError as exc:
+        raise KiwiPayloadValidationError(
+            "Kiwi search-flight returned a payload that does not match its MCP output schema."
+        ) from exc
+    return {
+        "provider": "kiwi",
+        "result": validated_payload.model_dump(mode="json", by_alias=True),
+    }
 
 
 @tool(args_schema=FinishFlightSearchArgs)
