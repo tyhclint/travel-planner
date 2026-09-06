@@ -29,3 +29,16 @@ def get_orchestrator_llm():
         api_key=settings.openai_api_key,
         temperature=0,
     )
+
+
+@lru_cache(maxsize=1)
+def get_flight_llm():
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY is required for the flight agent.")
+
+    return ChatOpenAI(
+        model=settings.flight_agent_model,
+        api_key=settings.openai_api_key,
+        temperature=0,
+    )

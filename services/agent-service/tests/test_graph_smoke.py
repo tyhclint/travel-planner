@@ -43,7 +43,25 @@ def _mock_orchestrator(monkeypatch, outputs):
     )
 
 
+def _mock_flight_node(monkeypatch):
+    from app.services.flights.mock import MockFlightService
+
+    flight_service = MockFlightService()
+
+    def fake_flight_node(state):
+        return {
+            "flight_results": flight_service.search_flights(
+                state["trip_requirements"],
+                state["preferences"],
+            ),
+            "task_status": {"flight": "completed"},
+        }
+
+    monkeypatch.setattr("app.graph.builder.flight_node", fake_flight_node)
+
+
 def test_graph_builds_mock_trip_response(monkeypatch):
+    _mock_flight_node(monkeypatch)
     _mock_turn_interpreter(
         monkeypatch,
         {
@@ -121,6 +139,7 @@ def test_graph_builds_mock_trip_response(monkeypatch):
 
 
 def test_graph_routes_flight_only_request_without_accommodation(monkeypatch):
+    _mock_flight_node(monkeypatch)
     _mock_turn_interpreter(
         monkeypatch,
         {

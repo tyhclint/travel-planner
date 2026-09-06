@@ -33,6 +33,10 @@ class FlightSearchArgs(BaseModel):
     price_to: int | None = Field(default=None, ge=0)
 
 
+class FinishFlightSearchArgs(BaseModel):
+    reason: str = Field(..., min_length=1, max_length=500)
+
+
 def _format_kiwi_date(value: date) -> str:
     """Format a Python date using the dd/mm/yyyy format expected by Kiwi."""
     return value.strftime("%d/%m/%Y")
@@ -104,3 +108,9 @@ async def search_flights(
 
     raw_result = await kiwi_tool.ainvoke(kiwi_args)
     return {"provider": "kiwi", "result": _extract_kiwi_payload(raw_result)}
+
+
+@tool(args_schema=FinishFlightSearchArgs)
+def finish_flight_search(reason: str) -> dict[str, str]:
+    """Call this when enough flight data has been gathered for ranking."""
+    return {"status": "finished", "reason": reason}

@@ -16,7 +16,7 @@ from app.graph.nodes.task_status import task_status_node
 from app.graph.nodes.turn_interpreter import turn_interpreter_node
 from app.graph.nodes.user_clarification import user_clarification_node
 from app.graph.state import TravelState
-from app.services.flights.tools import search_flights
+from app.services.flights.tools import finish_flight_search, search_flights
 
 
 def build_graph():
@@ -26,7 +26,7 @@ def build_graph():
     builder.add_node("task_status", task_status_node)
     builder.add_node("orchestrator", orchestrator_node)
     builder.add_node("flight_agent", flight_node)
-    builder.add_node("flight_tools", ToolNode([search_flights]))
+    builder.add_node("flight_tools", ToolNode([search_flights, finish_flight_search]))
     builder.add_node("accommodation_agent", accommodation_node)
     builder.add_node("destination_research_agent", destination_research_node)
     builder.add_node("fan_in", fan_in_node)
