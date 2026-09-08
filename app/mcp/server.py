@@ -7,6 +7,7 @@ from mcp.server.fastmcp import FastMCP
 
 from app.services.mcp.registry import get_local_registry
 from app.services.mcp.workflow import run_travel_turn
+from app.services.search.rag import MarkdownDestinationIndexer
 
 
 mcp = FastMCP("travel-planner")
@@ -57,6 +58,21 @@ def search_destination(requirements: dict[str, Any], preferences: dict[str, Any]
         {"requirements": requirements, "preferences": preferences},
     )
     return json.dumps(values)
+
+
+@mcp.tool()
+def index_destination_content(reset_collection: bool = False) -> str:
+    """Vector-encode markdown destination guides and upload them into ChromaDB."""
+    stats = MarkdownDestinationIndexer().index_documents(
+        reset_collection=reset_collection,
+    )
+    return json.dumps(
+        {
+            "collection_name": stats.collection_name,
+            "documents_indexed": stats.documents_indexed,
+            "chunks_indexed": stats.chunks_indexed,
+        }
+    )
 
 
 def main() -> None:

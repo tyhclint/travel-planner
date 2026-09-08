@@ -8,8 +8,7 @@ from app.domain.models.preferences import TravelPreferences
 from app.domain.models.trip import TripRequirements
 from app.services.accommodations.mock import MockAccommodationService
 from app.services.flights.mock import MockFlightService
-from app.services.search.mock import MockSearchService
-from app.services.chroma import get_chroma_client
+from app.services.search.rag import MarkdownRAGSearchService
 
 ToolHandler = Callable[[dict[str, Any]], list[dict[str, Any]]]
 
@@ -59,7 +58,7 @@ def _preferences(value: dict[str, Any]) -> TravelPreferences:
 def _register_default_tools(registry: MCPToolRegistry) -> None:
     flight_service = MockFlightService()
     accommodation_service = MockAccommodationService()
-    search_service = MockSearchService()
+    search_service = MarkdownRAGSearchService()
 
     registry.register(
         "travel.search_flights",
