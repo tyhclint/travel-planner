@@ -70,6 +70,10 @@ def route_flight_agent(state: TravelState) -> str:
     if _known_tool_calls(tool_calls):
         return "flight_tools"
 
+    next_tasks = (state.get("orchestrator_decision") or {}).get("next_tasks", [])
+    if "itinerary_planner_agent" in next_tasks:
+        return "flight_done"
+
     return "fan_in"
 
 

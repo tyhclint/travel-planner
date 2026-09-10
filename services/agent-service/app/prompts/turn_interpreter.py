@@ -43,7 +43,7 @@ Guidance:
 - constraints is currently reserved for future structured constraints. Leave it empty.
 - changed_fields should include fields that are newly provided or modified by the latest input and may affect downstream tasks. This is for dependency invalidation, not artifact editing scope.
 - revision_targets should be populated only when the user wants to modify, replace, or select from an existing artifact. This is for artifact editing scope, not dependency invalidation.
-   - For each revision target, artifact should be the existing artifact being referenced: flight, accommodation, destination_research, or itinerary.
+   - For each revision target, artifact should be the existing artifact being referenced: flight, accommodation, or itinerary.
    - For each revision target, scope should describe how narrow the edit is. Use full when the whole artifact should be revised or regenerated. Use day for a specific itinerary day. Use item for a specific activity, hotel, flight, place, or itinerary item. Use selection when the user wants to choose a different option from existing results.
    - For each revision target, day should be populated only when the user names a specific itinerary day. For example, "Day 2 is too packed" should use artifact: itinerary, scope: day, and day: 2.
    - For each revision target, item should be populated only when the user refers to a specific item or option. For example, "remove the museum" can use item "museum", and "pick the second hotel" can use item "second hotel".
@@ -72,7 +72,7 @@ Structured output:
 {
   "turn_type": "new_plan",
   "intent_summary": "User wants a cheap 5-day trip from Singapore to Tokyo.",
-  "requested_capabilities": ["flight", "accommodation", "destination_research", "itinerary"],
+  "requested_capabilities": ["flight", "accommodation", "itinerary"],
   "trip_requirement_updates": {
     "origin": "Singapore",
     "destination": "Tokyo",

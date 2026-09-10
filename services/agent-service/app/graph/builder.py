@@ -5,10 +5,9 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.graph.nodes.accommodation import accommodation_node
-from app.graph.nodes.destination_research import destination_research_node
 from app.graph.nodes.fan_in import fan_in_node
 from app.graph.nodes.flight import flight_node, route_flight_agent
-from app.graph.nodes.itinerary_planner import itinerary_planner_node
+from app.graph.nodes.itinerary_planner import itinerary_planner_node, route_itinerary_planner
 from app.graph.nodes.orchestrator import orchestrator_node, route_orchestrator
 from app.graph.nodes.ranking import ranking_node
 from app.graph.nodes.response import response_node
@@ -28,7 +27,8 @@ def build_graph():
     builder.add_node("flight_agent", flight_node)
     builder.add_node("flight_tools", ToolNode([search_flights, finish_flight_search]))
     builder.add_node("accommodation_agent", accommodation_node)
-    builder.add_node("destination_research_agent", destination_research_node)
+    builder.add_node("flight_done", lambda state: {})
+    builder.add_node("itinerary_done", lambda state: {})
     builder.add_node("fan_in", fan_in_node)
     builder.add_node("ranking", ranking_node)
     builder.add_node("itinerary_planner_agent", itinerary_planner_node)
@@ -44,7 +44,6 @@ def build_graph():
         {
             "flight_agent": "flight_agent",
             "accommodation_agent": "accommodation_agent",
-            "destination_research_agent": "destination_research_agent",
             "itinerary_planner_agent": "itinerary_planner_agent",
             "user_clarification": "user_clarification",
             "response_agent": "response_agent",
@@ -55,15 +54,23 @@ def build_graph():
         route_flight_agent,
         {
             "flight_tools": "flight_tools",
+            "flight_done": "flight_done",
+            "fan_in": "fan_in",
+        },
+    )
+    builder.add_conditional_edges(
+        "itinerary_planner_agent",
+        route_itinerary_planner,
+        {
+            "itinerary_done": "itinerary_done",
             "fan_in": "fan_in",
         },
     )
     builder.add_edge("flight_tools", "flight_agent")
     builder.add_edge("accommodation_agent", "fan_in")
-    builder.add_edge("destination_research_agent", "fan_in")
+    builder.add_edge(["flight_done", "itinerary_done"], "fan_in")
     builder.add_edge("fan_in", "ranking")
     builder.add_edge("ranking", "orchestrator")
-    builder.add_edge("itinerary_planner_agent", "orchestrator")
     builder.add_edge("user_clarification", "response_agent")
     builder.add_edge("response_agent", END)
 

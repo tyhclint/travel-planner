@@ -8,15 +8,15 @@ from app.domain.models.workflow import ChangedField, RequestedCapability
 
 DEPENDENCIES: dict[ChangedField, set[TaskName]] = {
     "origin": {"flight", "ranking", "itinerary"},
-    "destination": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
-    "travel_dates": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
-    "budget": {"flight", "accommodation", "destination_research", "ranking", "itinerary"},
+    "destination": {"flight", "accommodation", "ranking", "itinerary"},
+    "travel_dates": {"flight", "accommodation", "ranking", "itinerary"},
+    "budget": {"flight", "accommodation", "ranking", "itinerary"},
     "flight_preferences": {"flight", "ranking", "itinerary"},
-    "accommodation_preferences": {"accommodation", "ranking", "itinerary"},
-    "activity_preferences": {"destination_research", "itinerary"},
+    "accommodation_preferences": {"accommodation", "ranking"},
+    "activity_preferences": {"accommodation", "ranking", "itinerary"},
     "selected_flight": {"itinerary"},
     "selected_accommodation": {"itinerary"},
-    "itinerary_day": {"itinerary"},
+    "itinerary_day": {"accommodation", "ranking", "itinerary"},
 }
 
 

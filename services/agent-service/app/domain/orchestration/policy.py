@@ -1,4 +1,3 @@
-from app.graph.state import TravelState
 from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
 from app.domain.models.status import (
     RUNNABLE_TASK_STATUSES,
@@ -6,13 +5,13 @@ from app.domain.models.status import (
     TaskStatus,
     normalize_task_status,
 )
+from app.graph.state import TravelState
 
 MAX_ORCHESTRATION_STEPS = 10
 
 ROUTE_TO_TASK: dict[OrchestratorRoute, TaskName | None] = {
     "flight_agent": "flight",
     "accommodation_agent": "accommodation",
-    "destination_research_agent": "destination_research",
     "itinerary_planner_agent": "itinerary",
     "user_clarification": None,
     "response_agent": None,
@@ -49,6 +48,8 @@ def apply_deterministic_policy(
 ) -> OrchestratorDecision:
     """Reject unsafe LLM decisions and replace them with deterministic fallback routing."""
     statuses = normalize_task_status(state.get("task_status"))
+    flight_is_runnable = statuses["flight"] in RUNNABLE_TASK_STATUSES
+    itinerary_is_runnable = statuses["itinerary"] in RUNNABLE_TASK_STATUSES
 
     if decision.next_tasks == ["response_agent"] and has_runnable_required_work(statuses):
         return fallback_decision(state, state.get("orchestration_steps", 0))
@@ -61,6 +62,22 @@ def apply_deterministic_policy(
 
         if statuses[task_name] == "completed" and task_name not in rerun_tasks:
             return fallback_decision(state, state.get("orchestration_steps", 0))
+
+    if (
+        flight_is_runnable
+        and itinerary_is_runnable
+        and set(decision.next_tasks) != {"flight_agent", "itinerary_planner_agent"}
+    ):
+        return fallback_decision(state, state.get("orchestration_steps", 0))
+
+    if (
+        "accommodation_agent" in decision.next_tasks
+        and any(
+            statuses[task_name] in RUNNABLE_TASK_STATUSES
+            for task_name in ("flight", "itinerary")
+        )
+    ):
+        return fallback_decision(state, state.get("orchestration_steps", 0))
 
     return decision
 
@@ -75,27 +92,31 @@ def fallback_decision(
         return guardrail_decision
 
     statuses = normalize_task_status(state.get("task_status"))
-    parallel_tasks: list[OrchestratorRoute] = []
+    flight_is_runnable = statuses["flight"] in RUNNABLE_TASK_STATUSES
+    itinerary_is_runnable = statuses["itinerary"] in RUNNABLE_TASK_STATUSES
 
-    parallel_task_map: tuple[tuple[TaskName, OrchestratorRoute], ...] = (
-        ("flight", "flight_agent"),
-        ("accommodation", "accommodation_agent"),
-        ("destination_research", "destination_research_agent"),
-    )
-    for task_name, route_name in parallel_task_map:
-        if statuses[task_name] in RUNNABLE_TASK_STATUSES:
-            parallel_tasks.append(route_name)
-
-    if parallel_tasks:
+    if flight_is_runnable and itinerary_is_runnable:
         return OrchestratorDecision(
-            next_tasks=parallel_tasks,
-            reason="Runnable independent specialist tasks are pending or stale.",
+            next_tasks=["flight_agent", "itinerary_planner_agent"],
+            reason="Flight and itinerary work are pending or stale and can run in parallel.",
         )
 
-    if statuses["itinerary"] in RUNNABLE_TASK_STATUSES:
+    if flight_is_runnable:
+        return OrchestratorDecision(
+            next_tasks=["flight_agent"],
+            reason="Flight work is pending or stale.",
+        )
+
+    if itinerary_is_runnable:
         return OrchestratorDecision(
             next_tasks=["itinerary_planner_agent"],
-            reason="Itinerary work is pending or stale after upstream work completed.",
+            reason="Itinerary work is pending or stale.",
+        )
+
+    if statuses["accommodation"] in RUNNABLE_TASK_STATUSES:
+        return OrchestratorDecision(
+            next_tasks=["accommodation_agent"],
+            reason="Accommodation work is pending or stale after itinerary planning completed.",
         )
 
     return OrchestratorDecision(

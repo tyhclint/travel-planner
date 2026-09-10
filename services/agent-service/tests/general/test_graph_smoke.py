@@ -70,7 +70,6 @@ def test_graph_builds_mock_trip_response(monkeypatch):
             "requested_capabilities": [
                 "flight",
                 "accommodation",
-                "destination_research",
                 "itinerary",
             ],
             "trip_requirement_updates": {
@@ -99,16 +98,12 @@ def test_graph_builds_mock_trip_response(monkeypatch):
         monkeypatch,
         [
             {
-                "next_tasks": [
-                    "flight_agent",
-                    "accommodation_agent",
-                    "destination_research_agent",
-                ],
-                "reason": "Independent search tasks can run together.",
+                "next_tasks": ["flight_agent", "itinerary_planner_agent"],
+                "reason": "Flight and itinerary planning can run in parallel.",
             },
             {
-                "next_tasks": ["itinerary_planner_agent"],
-                "reason": "Itinerary work is pending after upstream tasks completed.",
+                "next_tasks": ["accommodation_agent"],
+                "reason": "Accommodation work is pending after itinerary planning completed.",
             },
             {
                 "next_tasks": ["response_agent"],
@@ -132,7 +127,6 @@ def test_graph_builds_mock_trip_response(monkeypatch):
     assert result["task_status"]["flight"] == "completed"
     assert result["task_status"]["accommodation"] == "completed"
     assert result["task_status"]["ranking"] == "completed"
-    assert result["task_status"]["destination_research"] == "completed"
     assert result["task_status"]["itinerary"] == "completed"
     assert "Top flight" in result["final_response"]
     assert "Itinerary" in result["final_response"]

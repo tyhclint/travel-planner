@@ -6,7 +6,7 @@ def fan_in_node(state: TravelState):
     statuses = normalize_task_status(state.get("task_status"))
     completed = [
         task
-        for task in ("flight", "accommodation", "destination_research")
+        for task in ("flight", "itinerary", "accommodation")
         if statuses[task] == "completed"
     ]
-    return {"fan_in_notes": [f"Search tasks complete: {', '.join(completed)}"]}
+    return {"fan_in_notes": [f"Completed tasks: {', '.join(completed)}"]}

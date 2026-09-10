@@ -44,7 +44,7 @@ class TurnConstraints(BaseModel):
 class RevisionTarget(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    artifact: Literal["flight", "accommodation", "destination_research", "itinerary"]
+    artifact: Literal["flight", "accommodation", "itinerary"]
     scope: Literal["full", "day", "item", "selection"]
     day: int | None = Field(default=None, ge=1)
     item: str | None = None

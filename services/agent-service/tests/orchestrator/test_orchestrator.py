@@ -19,13 +19,13 @@ def test_route_orchestrator_routes_single_task_decision():
 
 def test_route_orchestrator_routes_parallel_task_decision():
     decision = OrchestratorDecision(
-        next_tasks=["flight_agent", "accommodation_agent"],
-        reason="Independent search tasks can run together.",
+        next_tasks=["flight_agent", "itinerary_planner_agent"],
+        reason="Flight and itinerary planning can run together.",
     )
 
     route = route_orchestrator({"orchestrator_decision": decision.model_dump()})
 
-    assert route == ["flight_agent", "accommodation_agent"]
+    assert route == ["flight_agent", "itinerary_planner_agent"]
 
 
 def test_route_orchestrator_max_steps_overrides_stored_decision():
