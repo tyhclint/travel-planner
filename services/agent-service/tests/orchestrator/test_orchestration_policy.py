@@ -1,3 +1,6 @@
+import pytest
+
+from app.domain.models.errors import OrchestratorError
 from app.domain.models.orchestrator import OrchestratorDecision
 from app.domain.orchestration.policy import (
     MAX_ORCHESTRATION_STEPS,
@@ -106,35 +109,77 @@ def test_fallback_uses_guardrail_when_present():
     assert decision.clarification_fields == ["origin"]
 
 
-def test_policy_replaces_premature_response_with_fallback():
-    decision = apply_deterministic_policy(
-        {"task_status": {"flight": "pending"}},
-        OrchestratorDecision(
-            next_tasks=["response_agent"],
-            can_answer_now=True,
-            reason="The LLM thinks the answer is ready.",
-        ),
-    )
+def test_policy_rejects_premature_response():
+    with pytest.raises(
+        OrchestratorError,
+        match="routed to response_agent while runnable work remains",
+    ):
+        apply_deterministic_policy(
+            {"task_status": {"flight": "pending"}},
+            OrchestratorDecision(
+                next_tasks=["response_agent"],
+                can_answer_now=True,
+                reason="The LLM thinks the answer is ready.",
+            ),
+        )
 
-    assert decision.next_tasks == ["flight_agent"]
-    assert decision.can_answer_now is False
+
+def test_policy_rejects_completed_task_without_rerun_permission():
+    with pytest.raises(
+        OrchestratorError,
+        match="routed to flight_agent but flight is already completed",
+    ):
+        apply_deterministic_policy(
+            {
+                "task_status": {
+                    "flight": "completed",
+                    "accommodation": "pending",
+                }
+            },
+            OrchestratorDecision(
+                next_tasks=["flight_agent"],
+                reason="The LLM wants to run flights again.",
+            ),
+        )
 
 
-def test_policy_replaces_completed_task_without_rerun_permission():
-    decision = apply_deterministic_policy(
-        {
-            "task_status": {
-                "flight": "completed",
-                "accommodation": "pending",
-            }
-        },
-        OrchestratorDecision(
-            next_tasks=["flight_agent"],
-            reason="The LLM wants to run flights again.",
-        ),
-    )
+def test_policy_rejects_partial_parallel_decision():
+    with pytest.raises(
+        OrchestratorError,
+        match="must route flight_agent and itinerary_planner_agent together",
+    ):
+        apply_deterministic_policy(
+            {
+                "task_status": {
+                    "flight": "pending",
+                    "itinerary": "pending",
+                }
+            },
+            OrchestratorDecision(
+                next_tasks=["flight_agent"],
+                reason="The LLM wants to run only flights first.",
+            ),
+        )
 
-    assert decision.next_tasks == ["accommodation_agent"]
+
+def test_policy_rejects_accommodation_before_pending_itinerary():
+    with pytest.raises(
+        OrchestratorError,
+        match="routed to accommodation_agent before pending or stale flight",
+    ):
+        apply_deterministic_policy(
+            {
+                "task_status": {
+                    "flight": "completed",
+                    "accommodation": "pending",
+                    "itinerary": "pending",
+                }
+            },
+            OrchestratorDecision(
+                next_tasks=["accommodation_agent"],
+                reason="The LLM wants to search accommodation first.",
+            ),
+        )
 
 
 def test_policy_allows_completed_task_with_rerun_permission():
@@ -183,21 +228,3 @@ def test_policy_preserves_valid_parallel_flight_and_itinerary_decision():
     )
 
     assert decision == llm_decision
-
-
-def test_policy_replaces_accommodation_before_pending_itinerary():
-    decision = apply_deterministic_policy(
-        {
-            "task_status": {
-                "flight": "completed",
-                "accommodation": "pending",
-                "itinerary": "pending",
-            }
-        },
-        OrchestratorDecision(
-            next_tasks=["accommodation_agent"],
-            reason="The LLM wants to search accommodation first.",
-        ),
-    )
-
-    assert decision.next_tasks == ["itinerary_planner_agent"]

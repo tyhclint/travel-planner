@@ -1,3 +1,4 @@
+from app.domain.models.errors import OrchestratorError
 from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
 from app.domain.models.status import (
     RUNNABLE_TASK_STATUSES,
@@ -46,13 +47,15 @@ def apply_deterministic_policy(
     state: TravelState,
     decision: OrchestratorDecision,
 ) -> OrchestratorDecision:
-    """Reject unsafe LLM decisions and replace them with deterministic fallback routing."""
+    """Reject unsafe LLM decisions so orchestrator_node can fail loudly or fall back."""
     statuses = normalize_task_status(state.get("task_status"))
     flight_is_runnable = statuses["flight"] in RUNNABLE_TASK_STATUSES
     itinerary_is_runnable = statuses["itinerary"] in RUNNABLE_TASK_STATUSES
 
     if decision.next_tasks == ["response_agent"] and has_runnable_required_work(statuses):
-        return fallback_decision(state, state.get("orchestration_steps", 0))
+        raise OrchestratorError(
+            "Orchestrator routed to response_agent while runnable work remains."
+        )
 
     rerun_tasks = set(decision.rerun_completed_tasks)
     for route in decision.next_tasks:
@@ -61,14 +64,19 @@ def apply_deterministic_policy(
             continue
 
         if statuses[task_name] == "completed" and task_name not in rerun_tasks:
-            return fallback_decision(state, state.get("orchestration_steps", 0))
+            raise OrchestratorError(
+                f"Orchestrator routed to {route} but {task_name} is already completed."
+            )
 
     if (
         flight_is_runnable
         and itinerary_is_runnable
         and set(decision.next_tasks) != {"flight_agent", "itinerary_planner_agent"}
     ):
-        return fallback_decision(state, state.get("orchestration_steps", 0))
+        raise OrchestratorError(
+            "Orchestrator must route flight_agent and itinerary_planner_agent together "
+            "when both flight and itinerary are runnable."
+        )
 
     if (
         "accommodation_agent" in decision.next_tasks
@@ -77,7 +85,10 @@ def apply_deterministic_policy(
             for task_name in ("flight", "itinerary")
         )
     ):
-        return fallback_decision(state, state.get("orchestration_steps", 0))
+        raise OrchestratorError(
+            "Orchestrator routed to accommodation_agent before pending or stale flight "
+            "and itinerary work completed."
+        )
 
     return decision
 
