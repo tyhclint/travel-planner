@@ -1,1 +1,0 @@
-"""Accommodation service implementations."""

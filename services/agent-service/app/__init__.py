@@ -1,1 +1,1 @@
-"""Agent Service Application Package."""
+"""Travel planner microservice package."""

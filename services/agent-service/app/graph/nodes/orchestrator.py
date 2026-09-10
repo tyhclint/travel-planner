@@ -1,49 +1,71 @@
-from typing import Literal
+from pydantic import ValidationError
 
-from app.domain.models.status import RUNNABLE_TASK_STATUSES, TaskName, normalize_task_status
+from app.core.config import get_settings
+from app.domain.models.errors import AgentError, OrchestratorError
+from app.domain.models.orchestrator import OrchestratorDecision, OrchestratorRoute
+from app.domain.orchestration.policy import (
+    MAX_ORCHESTRATION_STEPS,
+    apply_deterministic_policy,
+    deterministic_guardrail_decision,
+    fallback_decision,
+)
 from app.graph.state import TravelState
+from app.services.orchestration.llm import validated_llm_decision
 
-RouteName = Literal[
-    "flight_agent",
-    "accommodation_agent",
-    "destination_research_agent",
-    "ranking",
-    "itinerary_planner_agent",
-    "user_clarification",
-    "response_agent",
-]
-
+RouteName = OrchestratorRoute
+settings = get_settings()
 
 def orchestrator_node(state: TravelState):
-    return {"orchestration_steps": state.get("orchestration_steps", 0) + 1}
+    """Create and store the next validated orchestration decision."""
+    orchestration_steps = state.get("orchestration_steps", 0) + 1
+    deterministic_decision = deterministic_guardrail_decision(state, orchestration_steps)
+    if deterministic_decision:
+        return {
+            "orchestration_steps": orchestration_steps,
+            "orchestrator_decision": deterministic_decision.model_dump(),
+        }
+
+    errors: list[AgentError] = []
+    try:
+        decision = validated_llm_decision(state, orchestration_steps)
+        decision = apply_deterministic_policy(state, decision)
+    except OrchestratorError as exc:
+        if settings.debug:
+            raise
+        decision = fallback_decision(state, orchestration_steps)
+        errors.append(
+            AgentError(
+                source="orchestrator",
+                error_type="llm_decision_failed",
+                message=str(exc),
+                retryable=False,
+            )
+        )
+
+    update = {
+        "orchestration_steps": orchestration_steps,
+        "orchestrator_decision": decision.model_dump(),
+    }
+    if errors:
+        update["errors"] = errors
+
+    return update
 
 
 def route_orchestrator(state: TravelState) -> RouteName | list[RouteName]:
-    if state.get("orchestration_steps", 0) > 10:
+    """Translate the stored orchestration decision into LangGraph route names."""
+    if state.get("orchestration_steps", 0) >= MAX_ORCHESTRATION_STEPS:
         return "response_agent"
 
     if state.get("missing_required_fields"):
         return "user_clarification"
 
-    statuses = normalize_task_status(state.get("task_status"))
-    parallel_tasks: list[RouteName] = []
+    try:
+        decision = OrchestratorDecision.model_validate(state.get("orchestrator_decision"))
+    except ValidationError:
+        decision = fallback_decision(state, state.get("orchestration_steps", 0))
 
-    parallel_task_map: tuple[tuple[TaskName, RouteName], ...] = (
-        ("flight", "flight_agent"),
-        ("accommodation", "accommodation_agent"),
-        ("destination_research", "destination_research_agent"),
-    )
-    for task_name, route_name in parallel_task_map:
-        if statuses[task_name] in RUNNABLE_TASK_STATUSES:
-            parallel_tasks.append(route_name)
+    if len(decision.next_tasks) == 1:
+        return decision.next_tasks[0]
 
-    if parallel_tasks:
-        return parallel_tasks
-
-    if statuses["ranking"] in RUNNABLE_TASK_STATUSES:
-        return "ranking"
-
-    if statuses["itinerary"] in RUNNABLE_TASK_STATUSES:
-        return "itinerary_planner_agent"
-
-    return "response_agent"
+    return decision.next_tasks
