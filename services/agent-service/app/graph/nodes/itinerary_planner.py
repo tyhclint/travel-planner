@@ -7,6 +7,7 @@ from app.domain.models.errors import AgentError, LLMProviderError
 from app.domain.models.itinerary import Itinerary, ItineraryDay
 from app.domain.models.recommendations import DestinationRecommendation
 from app.graph.state import TravelState
+from app.services.agent_history import last_tool_message_name
 from app.services.itinerary.prompt_builder import build_itinerary_prompt_messages
 from app.services.itinerary.result_parser import (
     parse_destination_research_tool_messages,
@@ -35,34 +36,28 @@ def itinerary_planner_node(state: TravelState):
     parsed_research = parse_destination_research_tool_messages(research_tool_messages)
     validated_days = parse_validated_day_plan_tool_messages(validation_tool_messages)
 
-    if _last_tool_message_name(messages) == "finish_itinerary_planning":
+    if last_tool_message_name(messages) == "finish_itinerary_planning":
         return _finalize_itinerary(state, parsed_research, validated_days)
 
     planning_attempts = len(research_tool_messages) + len(validation_tool_messages)
     if planning_attempts >= MAX_ITINERARY_PLANNING_ATTEMPTS:
         return _finalize_itinerary(state, parsed_research, validated_days)
 
-    try:
-        llm = get_itinerary_llm().bind_tools(
-            [destination_research_tool, validate_day_plan, finish_itinerary_planning]
+    
+    llm = get_itinerary_llm().bind_tools(
+        [destination_research_tool, validate_day_plan, finish_itinerary_planning]
+    )
+    response = llm.invoke(
+        build_itinerary_prompt_messages(
+            state=state,
+            planning_attempts=planning_attempts,
+            research_results=parsed_research,
+            validated_days=validated_days,
+            min_validated_days=MIN_VALIDATED_ITINERARY_DAYS,
+            max_planning_attempts=MAX_ITINERARY_PLANNING_ATTEMPTS,
+            tool_names=ITINERARY_TOOL_NAMES,
         )
-        response = llm.invoke(
-            build_itinerary_prompt_messages(
-                state=state,
-                planning_attempts=planning_attempts,
-                research_results=parsed_research,
-                validated_days=validated_days,
-                min_validated_days=MIN_VALIDATED_ITINERARY_DAYS,
-                max_planning_attempts=MAX_ITINERARY_PLANNING_ATTEMPTS,
-                tool_names=ITINERARY_TOOL_NAMES,
-            )
-        )
-    except (RuntimeError, LLMProviderError) as exc:
-        return _itinerary_failed_update(
-            "llm_action_failed",
-            f"Itinerary planner could not choose the next itinerary action: {exc}",
-            retryable=True,
-        )
+    )
 
     tool_calls = _known_tool_calls(getattr(response, "tool_calls", []) or [])
     if len(tool_calls) != 1:
@@ -107,13 +102,6 @@ def _tool_messages(messages: list[Any], name: str) -> list[ToolMessage]:
         for message in messages
         if isinstance(message, ToolMessage) and message.name == name
     ]
-
-
-def _last_tool_message_name(messages: list[Any]) -> str | None:
-    """Return the name of the latest message when it is a ToolMessage."""
-    if messages and isinstance(messages[-1], ToolMessage):
-        return messages[-1].name
-    return None
 
 
 def _finalize_itinerary(

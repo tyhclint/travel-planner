@@ -17,3 +17,7 @@ class TurnInterpreterError(Exception):
 
 class OrchestratorError(Exception):
     """Raised when the LLM orchestrator cannot produce valid structured output."""
+
+
+class ItineraryPlannerError(Exception):
+    """Raised when the LLM itinerary planner cannot produce valid structured output."""

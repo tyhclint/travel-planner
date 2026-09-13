@@ -20,3 +20,10 @@ def known_tool_calls(
 ) -> list[dict[str, Any]]:
     """Return only tool calls that belong to the provided tool-name set."""
     return [call for call in tool_calls if call.get("name") in tool_names]
+
+
+def last_tool_message_name(messages: list[Any]) -> str | None:
+    """Return the name of the latest message when it is a ToolMessage."""
+    if messages and isinstance(messages[-1], ToolMessage):
+        return messages[-1].name
+    return None

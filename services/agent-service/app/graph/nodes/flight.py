@@ -6,6 +6,7 @@ from app.core.llm import get_flight_llm
 from app.domain.models.errors import AgentError
 from app.domain.models.flights import FlightOption
 from app.graph.state import TravelState
+from app.services.agent_history import last_tool_message_name
 from app.services.flights.prompt_builder import build_flight_prompt_messages
 from app.services.flights.result_parser import parse_flight_tool_messages
 from app.services.flights.tools import finish_flight_search, search_flights
@@ -21,7 +22,7 @@ def flight_node(state: TravelState):
     search_tool_messages = _tool_messages(messages, "search_flights")
     parsed_options = parse_flight_tool_messages(search_tool_messages)
 
-    if _last_tool_message_name(messages) == "finish_flight_search":
+    if last_tool_message_name(messages) == "finish_flight_search":
         return _finalize_flight_results(parsed_options)
 
     if len(search_tool_messages) >= MAX_FLIGHT_SEARCH_ATTEMPTS:
@@ -89,13 +90,6 @@ def _tool_messages(messages: list[Any], name: str) -> list[ToolMessage]:
         for message in messages
         if isinstance(message, ToolMessage) and message.name == name
     ]
-
-
-def _last_tool_message_name(messages: list[Any]) -> str | None:
-    """Return the name of the latest message when it is a ToolMessage."""
-    if messages and isinstance(messages[-1], ToolMessage):
-        return messages[-1].name
-    return None
 
 
 def _finalize_flight_results(options: list[FlightOption]):
