@@ -1,5 +1,8 @@
 from pydantic import BaseModel
 
+class LLMProviderError(Exception):
+    """Raised when the LLM provider returns an error response or no api key set."""
+
 
 class AgentError(BaseModel):
     source: str

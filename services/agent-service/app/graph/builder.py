@@ -16,6 +16,11 @@ from app.graph.nodes.turn_interpreter import turn_interpreter_node
 from app.graph.nodes.user_clarification import user_clarification_node
 from app.graph.state import TravelState
 from app.services.flights.tools import finish_flight_search, search_flights
+from app.services.itinerary.tools import (
+    destination_research_tool,
+    finish_itinerary_planning,
+    validate_day_plan,
+)
 
 
 def build_graph():
@@ -27,6 +32,16 @@ def build_graph():
     builder.add_node("flight_agent", flight_node)
     builder.add_node("flight_tools", ToolNode([search_flights, finish_flight_search]))
     builder.add_node("accommodation_agent", accommodation_node)
+    builder.add_node(
+        "itinerary_tools",
+        ToolNode(
+            [
+                destination_research_tool,
+                validate_day_plan,
+                finish_itinerary_planning,
+            ]
+        ),
+    )
     builder.add_node("flight_done", lambda state: {})
     builder.add_node("itinerary_done", lambda state: {})
     builder.add_node("fan_in", fan_in_node)
@@ -62,11 +77,13 @@ def build_graph():
         "itinerary_planner_agent",
         route_itinerary_planner,
         {
+            "itinerary_tools": "itinerary_tools",
             "itinerary_done": "itinerary_done",
             "fan_in": "fan_in",
         },
     )
     builder.add_edge("flight_tools", "flight_agent")
+    builder.add_edge("itinerary_tools", "itinerary_planner_agent")
     builder.add_edge("accommodation_agent", "fan_in")
     builder.add_edge(["flight_done", "itinerary_done"], "fan_in")
     builder.add_edge("fan_in", "ranking")

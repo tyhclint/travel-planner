@@ -60,8 +60,43 @@ def _mock_flight_node(monkeypatch):
     monkeypatch.setattr("app.graph.builder.flight_node", fake_flight_node)
 
 
+def _mock_itinerary_node(monkeypatch):
+    from app.domain.models.itinerary import Activity, Itinerary, ItineraryDay
+
+    def fake_itinerary_node(state):
+        destination = state["trip_requirements"].destination or "your destination"
+        return {
+            "current_itinerary": Itinerary(
+                destination=destination,
+                days=[
+                    ItineraryDay(
+                        day=1,
+                        title=f"Day 1 in {destination}",
+                        rationale="Mock itinerary for graph smoke testing.",
+                        activities=[
+                            Activity(
+                                time="09:30",
+                                title=f"{destination} neighborhood walk",
+                                description="A mock itinerary activity.",
+                                category="culture",
+                                location=destination,
+                                duration_minutes=120,
+                                url="https://example.com/mock-itinerary",
+                            )
+                        ],
+                    )
+                ],
+            ),
+            "itinerary_version": state.get("itinerary_version", 0) + 1,
+            "task_status": {"itinerary": "completed"},
+        }
+
+    monkeypatch.setattr("app.graph.builder.itinerary_planner_node", fake_itinerary_node)
+
+
 def test_graph_builds_mock_trip_response(monkeypatch):
     _mock_flight_node(monkeypatch)
+    _mock_itinerary_node(monkeypatch)
     _mock_turn_interpreter(
         monkeypatch,
         {

@@ -3,38 +3,44 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.domain.models.flights import FlightOption
+from app.domain.models.itinerary import ItineraryDay
+from app.domain.models.recommendations import DestinationRecommendation
 from app.graph.state import TravelState
-from app.prompts.flight import FLIGHT_AGENT_SYSTEM_PROMPT, FLIGHT_AGENT_USER_PROMPT
+from app.prompts.itinerary import ITINERARY_AGENT_SYSTEM_PROMPT, ITINERARY_AGENT_USER_PROMPT
 from app.services.agent_history import agent_tool_history
 
 
-def build_flight_prompt_messages(
+def build_itinerary_prompt_messages(
     state: TravelState,
     *,
-    search_attempts: int,
-    parsed_options: list[FlightOption],
-    min_flight_options: int,
-    max_search_attempts: int,
+    planning_attempts: int,
+    research_results: list[DestinationRecommendation],
+    validated_days: list[ItineraryDay],
+    min_validated_days: int,
+    max_planning_attempts: int,
     tool_names: set[str],
 ):
-    """Build the messages for the flight agent LLM."""
+    """Build the messages for the itinerary planner LLM."""
     return [
         SystemMessage(
-            content=FLIGHT_AGENT_SYSTEM_PROMPT.format(
-                min_flight_options=min_flight_options,
-                max_search_attempts=max_search_attempts,
+            content=ITINERARY_AGENT_SYSTEM_PROMPT.format(
+                min_validated_days=min_validated_days,
+                max_planning_attempts=max_planning_attempts,
             )
         ),
         HumanMessage(
-            content=FLIGHT_AGENT_USER_PROMPT.format(
+            content=ITINERARY_AGENT_USER_PROMPT.format(
                 conversation_summary=state.get("conversation_summary", ""),
                 latest_user_input=state.get("latest_user_input", ""),
                 trip_requirements=_json_value(state.get("trip_requirements")),
                 preferences=_json_value(state.get("preferences")),
-                flight_task_status=state.get("task_status", {}).get("flight"),
-                search_attempts=search_attempts,
-                usable_options=_json_value(parsed_options),
+                selected_flight=_json_value(state.get("selected_flight")),
+                selected_accommodation=_json_value(state.get("selected_accommodation")),
+                itinerary_task_status=state.get("task_status", {}).get("itinerary"),
+                planning_attempts=planning_attempts,
+                research_results=_json_value(research_results),
+                validated_days=_json_value(validated_days),
+                current_itinerary=_json_value(state.get("current_itinerary")),
                 errors=_json_value(state.get("errors", [])),
             )
         ),
