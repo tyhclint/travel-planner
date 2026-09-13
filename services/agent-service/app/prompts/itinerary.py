@@ -21,6 +21,19 @@ Enough data usually means:
 - the previous tool results show that another reasonable planning attempt is
   unlikely to improve the outcome
 
+Expected planning loop:
+1. Call destination_research_tool first unless usable destination research is
+   already present in the provided state.
+2. Use the destination research to draft exactly one day plan at a time.
+3. Submit each drafted day plan as the arguments to validate_day_plan. The draft
+   day plan belongs in the tool call arguments, not in plain text.
+4. If validate_day_plan returns rejection or issue feedback, revise that same day
+   and call validate_day_plan again.
+5. Treat only validated day plans from validate_day_plan tool results as accepted
+   itinerary content.
+6. Once enough days are validated for the trip request, or further validation is
+   unlikely to help, call finish_itinerary_planning.
+
 Planning guidance:
 - Prefer the user's destination, dates, trip length, budget, interests, and pace
   from the structured state.
