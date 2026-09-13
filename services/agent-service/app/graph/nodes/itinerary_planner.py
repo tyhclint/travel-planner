@@ -3,7 +3,7 @@ from typing import Any
 from langchain_core.messages import ToolMessage
 
 from app.core.llm import get_itinerary_llm
-from app.domain.models.errors import AgentError, LLMProviderError
+from app.domain.models.errors import AgentError
 from app.domain.models.itinerary import Itinerary, ItineraryDay
 from app.domain.models.recommendations import DestinationRecommendation
 from app.graph.state import TravelState

@@ -40,6 +40,15 @@ Planning guidance:
 - Use selected flight and accommodation details when present so the itinerary
   can respect arrival/departure timing and neighborhood constraints.
 - If research is missing or thin, call destination_research_tool.
+- Autonomously call destination_research_tool again when existing research is too
+  sparse, too generic, missing categories needed for the user's interests,
+  missing coverage for later days, or insufficient to draft a concrete validated
+  day plan.
+- Do not force a day plan from weak research. Prefer another focused research
+  call before validating a low-quality or repetitive day.
+- When calling destination_research_tool again, narrow the request using the
+  missing need, such as food, culture, nightlife, family activities, rainy-day
+  options, neighborhood, budget level, or pace.
 - If research is available but day plans are missing, call validate_day_plan.
 - Validate one day at a time with concrete activity objects.
 
