@@ -1,1 +1,1 @@
-"""Flight service package."""
+"""Flight service implementations."""

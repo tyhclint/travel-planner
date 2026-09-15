@@ -1,1 +1,1 @@
-"""Core configuration package."""
+"""Core service configuration."""

@@ -1,1 +1,1 @@
-"""Tests package for agent-service."""
+"""Test package."""

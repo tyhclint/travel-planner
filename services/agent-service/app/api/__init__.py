@@ -1,1 +1,1 @@
-"""API package for agent-service."""
+"""HTTP API layer."""

@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 CabinClass = Literal["economy", "premium_economy", "business", "first"]
 
-
 class FlightOption(BaseModel):
     id: str
     airline: str

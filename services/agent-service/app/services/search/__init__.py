@@ -1,1 +1,1 @@
-"""Search service package."""
+"""Destination search service implementations."""
