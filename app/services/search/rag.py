@@ -148,7 +148,7 @@ class MarkdownRAGSearchService(SearchService):
         collection = self.client.get_or_create_collection(name=self.collection_name)
         if collection.count() == 0:
             raise RuntimeError(
-                "Destination knowledge base is empty. Run the MCP indexing tool first."
+                "Destination knowledge base is empty. Index the markdown guides before searching."
             )
 
         query_embedding = self.embedder.embed_query(

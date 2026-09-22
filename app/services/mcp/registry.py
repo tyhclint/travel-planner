@@ -3,15 +3,17 @@
 from collections.abc import Callable, Mapping
 from datetime import date
 from functools import lru_cache
-import os
-from pathlib import Path
 from typing import Any, Awaitable
 from typing import Final
 
 from fastmcp import Client
+from pydantic import ValidationError
+
+from app.domain.models.preferences import TravelPreferences
+from app.domain.models.trip import TripRequirements
+from app.services.search.rag import MarkdownRAGSearchService
 
 ToolHandler = Callable[[dict[str, Any]], list[dict[str, Any]] | Awaitable[list[dict[str, Any]]]]
-RESOURCES_DIR = Path(__file__).resolve().parents[2] / "resources"
 KIWI_MCP_SERVER_NAME: Final = "kiwi"
 KIWI_MCP_DEFAULT_URL: Final = "https://mcp.kiwi.com"
 
@@ -154,26 +156,14 @@ def _search_accommodations(arguments: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _search_destination(arguments: dict[str, Any]) -> list[dict[str, Any]]:
-    requirements = _requirements(arguments)
-    destination = str(requirements.get("destination") or "Tokyo")
-    guide = next(
-        RESOURCES_DIR.glob(f"**/{destination.lower()}.md"),
-        None,
-    )
-    description = (
-        guide.read_text(encoding="utf-8").split("\n", 1)[0].lstrip("# ")
-        if guide
-        else f"Local destination guide for {destination}."
-    )
-    return [
-        {
-            "name": destination,
-            "category": "destination",
-            "description": description,
-            "location": destination,
-            "source_url": guide.resolve().as_uri() if guide else None,
-        }
-    ]
+    try:
+        requirements = TripRequirements.model_validate(arguments.get("requirements", {}))
+        preferences = TravelPreferences.model_validate(arguments.get("preferences", {}))
+    except ValidationError as exc:
+        raise ValueError(f"Invalid destination search arguments: {exc}") from exc
+
+    values = MarkdownRAGSearchService().search_destination(requirements, preferences)
+    return [_json_safe(value) for value in values]
 
 
 def _register_default_tools(registry: MCPToolRegistry) -> None:

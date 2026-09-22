@@ -3,6 +3,7 @@ from fastmcp import Client
 
 from fastapi import FastAPI
 from app.mcp.server import mcp
+from app.services.search.rag import MarkdownDestinationIndexer
 
 import truststore
 
@@ -20,6 +21,7 @@ mcp_app = mcp.http_app(path="/mcp")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     del _app
+    MarkdownDestinationIndexer().index_documents()
     async with mcp_app.lifespan(mcp_app):
         yield
 
