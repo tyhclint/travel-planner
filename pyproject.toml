@@ -5,14 +5,18 @@ description = "LangGraph travel planner microservices system"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.116.0",
+    "chromadb>=0.5.0",
+    "fastapi[standard]>=0.116.0",
+    "fastmcp>=2.0.0",
     "langchain-core>=0.3.0",
+    "langchain-mcp-adapters>=0.3.2",
     "langchain-openai>=0.2.0",
     "langgraph>=0.2.0",
-    "mcp>=1.0.0",
+    "mcp>=1.24.0,<2.0.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
     "python-dotenv>=1.0.1",
+    "sentence-transformers>=3.0.0",
     "uvicorn[standard]>=0.30.0",
 ]
 
