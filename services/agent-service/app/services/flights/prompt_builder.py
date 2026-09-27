@@ -1,12 +1,10 @@
-import json
-from typing import Any
-
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.domain.models.flights import FlightOption
 from app.graph.state import TravelState
 from app.prompts.flight import FLIGHT_AGENT_SYSTEM_PROMPT, FLIGHT_AGENT_USER_PROMPT
 from app.services.agent_history import agent_tool_history
+from app.services.prompt_serialization import json_value
 
 
 def build_flight_prompt_messages(
@@ -30,31 +28,13 @@ def build_flight_prompt_messages(
             content=FLIGHT_AGENT_USER_PROMPT.format(
                 conversation_summary=state.get("conversation_summary", ""),
                 latest_user_input=state.get("latest_user_input", ""),
-                trip_requirements=_json_value(state.get("trip_requirements")),
-                preferences=_json_value(state.get("preferences")),
+                trip_requirements=json_value(state.get("trip_requirements")),
+                preferences=json_value(state.get("preferences")),
                 flight_task_status=state.get("task_status", {}).get("flight"),
                 search_attempts=search_attempts,
-                usable_options=_json_value(parsed_options),
-                errors=_json_value(state.get("errors", [])),
+                usable_options=json_value(parsed_options),
+                errors=json_value(state.get("errors", [])),
             )
         ),
         *agent_tool_history(state.get("messages", []), tool_names),
     ]
-
-
-def _json_value(value: Any) -> str:
-    """Serialize prompt values to JSON, including Pydantic models."""
-    if value is None:
-        return "null"
-    if hasattr(value, "model_dump_json"):
-        return value.model_dump_json()
-    if isinstance(value, list):
-        return json.dumps([_json_safe(item) for item in value], default=str)
-    return json.dumps(_json_safe(value), default=str)
-
-
-def _json_safe(value: Any) -> Any:
-    """Convert Pydantic values into structures json.dumps can handle."""
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    return value

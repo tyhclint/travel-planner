@@ -46,6 +46,19 @@ def get_flight_llm():
 
 
 @lru_cache(maxsize=1)
+def get_accommodation_llm():
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise LLMProviderError("OPENAI_API_KEY is required for the accommodation agent.")
+
+    return ChatOpenAI(
+        model=settings.accommodation_agent_model,
+        api_key=settings.openai_api_key,
+        temperature=0,
+    )
+
+
+@lru_cache(maxsize=1)
 def get_itinerary_llm():
     settings = get_settings()
     if not settings.openai_api_key:

@@ -1,5 +1,5 @@
-import json
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -10,6 +10,7 @@ from app.prompts.orchestrator import (
     ORCHESTRATOR_SYSTEM_PROMPT,
     ORCHESTRATOR_USER_PROMPT,
 )
+from app.services.prompt_serialization import json_value
 
 
 def build_orchestrator_prompt_messages(
@@ -64,21 +65,3 @@ def turn_interpretation_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         "latest_feedback": state.get("latest_feedback", {}),
         "missing_required_fields": state.get("missing_required_fields", []),
     }
-
-
-def json_value(value: Any) -> str:
-    """Serialize prompt values to JSON strings, including Pydantic models."""
-    if value is None:
-        return "null"
-    if hasattr(value, "model_dump_json"):
-        return value.model_dump_json()
-    if isinstance(value, list):
-        return json.dumps([json_safe(item) for item in value], default=str)
-    return json.dumps(json_safe(value), default=str)
-
-
-def json_safe(value: Any) -> Any:
-    """Convert Pydantic models into JSON-serializable dictionaries."""
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    return value

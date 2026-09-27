@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -14,6 +13,7 @@ from app.prompts.turn_interpreter import (
     TURN_INTERPRETER_SYSTEM_PROMPT,
     TURN_INTERPRETER_USER_PROMPT,
 )
+from app.services.prompt_serialization import json_value
 
 
 def turn_interpreter_node(
@@ -71,9 +71,9 @@ def _prompt_messages(
                 conversation_summary=state.get("conversation_summary", ""),
                 trip_requirements=requirements.model_dump_json(),
                 preferences=preferences.model_dump_json(),
-                selected_flight=_json_value(state.get("selected_flight")),
-                selected_accommodation=_json_value(state.get("selected_accommodation")),
-                itinerary_summary=_json_value(state.get("current_itinerary")),
+                selected_flight=json_value(state.get("selected_flight")),
+                selected_accommodation=json_value(state.get("selected_accommodation")),
+                itinerary_summary=json_value(state.get("current_itinerary")),
                 latest_user_input=latest_input,
             )
         ),
@@ -82,14 +82,6 @@ def _prompt_messages(
 
 def _model_updates(model) -> dict[str, Any]:
     return model.model_dump(exclude_none=True, exclude_defaults=True)
-
-
-def _json_value(value: Any) -> str:
-    if value is None:
-        return "null"
-    if hasattr(value, "model_dump_json"):
-        return value.model_dump_json()
-    return json.dumps(value, default=str)
 
 
 def _dedupe(values: list[Any]) -> list[Any]:

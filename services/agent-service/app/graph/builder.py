@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from app.graph.nodes.accommodation import accommodation_node
+from app.graph.nodes.accommodation import accommodation_node, route_accommodation_agent
 from app.graph.nodes.fan_in import fan_in_node
 from app.graph.nodes.flight import flight_node, route_flight_agent
 from app.graph.nodes.itinerary_planner import itinerary_planner_node, route_itinerary_planner
@@ -15,6 +15,12 @@ from app.graph.nodes.task_status import task_status_node
 from app.graph.nodes.turn_interpreter import turn_interpreter_node
 from app.graph.nodes.user_clarification import user_clarification_node
 from app.graph.state import TravelState
+from app.services.accommodations.tools import (
+    finish_accommodation_search,
+    get_accommodation_details,
+    get_accommodation_reviews,
+    search_accommodations,
+)
 from app.services.flights.tools import finish_flight_search, search_flights
 from app.services.itinerary.tools import (
     destination_research_tool,
@@ -33,6 +39,17 @@ def build_graph():
     builder.add_node("flight_tools", ToolNode([search_flights, finish_flight_search]))
     builder.add_node("accommodation_agent", accommodation_node)
     builder.add_node(
+        "accommodation_tools",
+        ToolNode(
+            [
+                search_accommodations,
+                get_accommodation_details,
+                get_accommodation_reviews,
+                finish_accommodation_search,
+            ]
+        ),
+    )
+    builder.add_node(
         "itinerary_tools",
         ToolNode(
             [
@@ -43,6 +60,7 @@ def build_graph():
         ),
     )
     builder.add_node("flight_done", lambda state: {})
+    builder.add_node("accommodation_done", lambda state: {})
     builder.add_node("itinerary_done", lambda state: {})
     builder.add_node("fan_in", fan_in_node)
     builder.add_node("ranking", ranking_node)
@@ -83,9 +101,18 @@ def build_graph():
         },
     )
     builder.add_edge("flight_tools", "flight_agent")
+    builder.add_conditional_edges(
+        "accommodation_agent",
+        route_accommodation_agent,
+        {
+            "accommodation_tools": "accommodation_tools",
+            "accommodation_done": "accommodation_done",
+            "fan_in": "fan_in",
+        },
+    )
+    builder.add_edge("accommodation_tools", "accommodation_agent")
     builder.add_edge("itinerary_tools", "itinerary_planner_agent")
-    builder.add_edge("accommodation_agent", "fan_in")
-    builder.add_edge(["flight_done", "itinerary_done"], "fan_in")
+    builder.add_edge(["flight_done", "accommodation_done", "itinerary_done"], "fan_in")
     builder.add_edge("fan_in", "ranking")
     builder.add_edge("ranking", "orchestrator")
     builder.add_edge("user_clarification", "response_agent")

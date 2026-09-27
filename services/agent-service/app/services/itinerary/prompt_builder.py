@@ -1,6 +1,3 @@
-import json
-from typing import Any
-
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.domain.models.itinerary import ItineraryDay
@@ -8,6 +5,7 @@ from app.domain.models.recommendations import DestinationRecommendation
 from app.graph.state import TravelState
 from app.prompts.itinerary import ITINERARY_AGENT_SYSTEM_PROMPT, ITINERARY_AGENT_USER_PROMPT
 from app.services.agent_history import agent_tool_history
+from app.services.prompt_serialization import json_value
 
 
 def build_itinerary_prompt_messages(
@@ -32,35 +30,17 @@ def build_itinerary_prompt_messages(
             content=ITINERARY_AGENT_USER_PROMPT.format(
                 conversation_summary=state.get("conversation_summary", ""),
                 latest_user_input=state.get("latest_user_input", ""),
-                trip_requirements=_json_value(state.get("trip_requirements")),
-                preferences=_json_value(state.get("preferences")),
-                selected_flight=_json_value(state.get("selected_flight")),
-                selected_accommodation=_json_value(state.get("selected_accommodation")),
+                trip_requirements=json_value(state.get("trip_requirements")),
+                preferences=json_value(state.get("preferences")),
+                selected_flight=json_value(state.get("selected_flight")),
+                selected_accommodation=json_value(state.get("selected_accommodation")),
                 itinerary_task_status=state.get("task_status", {}).get("itinerary"),
                 planning_attempts=planning_attempts,
-                research_results=_json_value(research_results),
-                validated_days=_json_value(validated_days),
-                current_itinerary=_json_value(state.get("current_itinerary")),
-                errors=_json_value(state.get("errors", [])),
+                research_results=json_value(research_results),
+                validated_days=json_value(validated_days),
+                current_itinerary=json_value(state.get("current_itinerary")),
+                errors=json_value(state.get("errors", [])),
             )
         ),
         *agent_tool_history(state.get("messages", []), tool_names),
     ]
-
-
-def _json_value(value: Any) -> str:
-    """Serialize prompt values to JSON, including Pydantic models."""
-    if value is None:
-        return "null"
-    if hasattr(value, "model_dump_json"):
-        return value.model_dump_json()
-    if isinstance(value, list):
-        return json.dumps([_json_safe(item) for item in value], default=str)
-    return json.dumps(_json_safe(value), default=str)
-
-
-def _json_safe(value: Any) -> Any:
-    """Convert Pydantic values into structures json.dumps can handle."""
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    return value
