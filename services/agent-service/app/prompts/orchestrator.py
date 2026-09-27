@@ -41,19 +41,22 @@ artifacts that need regeneration, and explain the insufficiency in reason.
 Allowed next tasks:
 - flight_agent
 - accommodation_agent
-- destination_research_agent
 - itinerary_planner_agent
 - user_clarification
 - response_agent
 
-Prefer parallel next_tasks only for independent search/research tasks:
-- flight_agent
-- accommodation_agent
-- destination_research_agent
+The itinerary_planner_agent owns activity research and itinerary planning. When
+flight and itinerary work are pending or stale, run flight_agent and
+itinerary_planner_agent in parallel, then run accommodation_agent after both are
+complete. accommodation_agent may run earlier for accommodation-only or other
+no-flight/no-itinerary requests.
 
-Do not include deterministic workflow plumbing in next_tasks. Do not run the
-itinerary planner before required destination research, flight, or accommodation
-work needed for the user's request is complete.
+Prefer parallel next_tasks only for flight and itinerary planning:
+- flight_agent
+- itinerary_planner_agent
+
+Do not include deterministic workflow plumbing in next_tasks. Do not run
+accommodation work before pending or stale flight or itinerary work.
 
 Guardrails:
 - If missing_required_fields is non-empty, route to user_clarification.
@@ -87,13 +90,12 @@ Relevant state:
 {
   "turn_type": "new_plan",
   "intent_summary": "User wants a cheap 5-day trip from Singapore to Tokyo.",
-  "requested_capabilities": ["flight", "accommodation", "destination_research", "itinerary"],
+  "requested_capabilities": ["flight", "accommodation", "itinerary"],
   "missing_required_fields": [],
   "constraints": {},
   "task_status": {
     "flight": "pending",
     "accommodation": "pending",
-    "destination_research": "pending",
     "itinerary": "pending"
   },
   "orchestration_steps": 1
@@ -101,11 +103,11 @@ Relevant state:
 
 Structured output:
 {
-  "next_tasks": ["flight_agent", "accommodation_agent", "destination_research_agent"],
+  "next_tasks": ["flight_agent", "itinerary_planner_agent"],
   "can_answer_now": false,
   "needs_clarification": false,
   "clarification_fields": [],
-  "reason": "The initial independent travel research tasks are pending and can run in parallel before itinerary planning.",
+  "reason": "Flight and itinerary planning work are pending and can run in parallel before accommodation.",
   "rerun_completed_tasks": [],
   "assumptions": []
 }
@@ -122,7 +124,6 @@ Relevant state:
   "task_status": {
     "flight": "pending",
     "accommodation": "not_required",
-    "destination_research": "not_required",
     "itinerary": "not_required"
   },
   "orchestration_steps": 1
@@ -151,8 +152,7 @@ Relevant state:
   "task_status": {
     "flight": "completed",
     "accommodation": "stale",
-    "destination_research": "completed",
-    "itinerary": "stale"
+    "itinerary": "completed"
   },
   "orchestration_steps": 2
 }
@@ -163,7 +163,7 @@ Structured output:
   "can_answer_now": false,
   "needs_clarification": false,
   "clarification_fields": [],
-  "reason": "Accommodation preferences changed, so accommodation must be regenerated while completed flights are not runnable.",
+  "reason": "Accommodation preferences changed, so accommodation must be regenerated after the existing itinerary while completed flights are not runnable.",
   "rerun_completed_tasks": [],
   "assumptions": []
 }
@@ -192,7 +192,6 @@ Relevant state:
   "task_status": {
     "flight": "completed",
     "accommodation": "completed",
-    "destination_research": "completed",
     "itinerary": "stale"
   },
   "orchestration_steps": 2
@@ -221,7 +220,6 @@ Relevant state:
   "task_status": {
     "flight": "completed",
     "accommodation": "completed",
-    "destination_research": "completed",
     "itinerary": "completed"
   },
   "orchestration_steps": 1

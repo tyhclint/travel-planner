@@ -1,12 +1,11 @@
 from typing import Literal
 
-TaskName = Literal["flight", "accommodation", "destination_research", "itinerary", "ranking"]
+TaskName = Literal["flight", "accommodation", "itinerary", "ranking"]
 TaskStatus = Literal["not_required", "pending", "running", "completed", "stale", "failed"]
 
 ALL_TASK_NAMES: tuple[TaskName, ...] = (
     "flight",
     "accommodation",
-    "destination_research",
     "itinerary",
     "ranking",
 )
@@ -25,5 +24,11 @@ def normalize_task_status(
     """ Create a normalized task status dictionary, filling in any missing tasks with the default status. """
     statuses = DEFAULT_TASK_STATUS.copy()
     if current_status:
-        statuses.update(current_status)
+        statuses.update(
+            {
+                task_name: status
+                for task_name, status in current_status.items()
+                if task_name in ALL_TASK_NAMES
+            }
+        )
     return statuses

@@ -2,11 +2,9 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 OrchestratorRoute = Literal[
     "flight_agent",
     "accommodation_agent",
-    "destination_research_agent",
     "itinerary_planner_agent",
     "user_clarification",
     "response_agent",
@@ -15,14 +13,12 @@ OrchestratorRoute = Literal[
 OrchestratorRerunTask = Literal[
     "flight",
     "accommodation",
-    "destination_research",
     "itinerary",
 ]
 
 PARALLEL_ORCHESTRATOR_ROUTES: set[OrchestratorRoute] = {
     "flight_agent",
-    "accommodation_agent",
-    "destination_research_agent",
+    "itinerary_planner_agent",
 }
 
 
@@ -48,7 +44,7 @@ class OrchestratorDecision(BaseModel):
             raise ValueError("user_clarification cannot be combined with other next_tasks.")
 
         if len(next_tasks) > 1 and not next_tasks.issubset(PARALLEL_ORCHESTRATOR_ROUTES):
-            raise ValueError("Only independent search/research agents can run in parallel.")
+            raise ValueError("Only flight and itinerary agents can run in parallel.")
 
         if self.can_answer_now and self.next_tasks != ["response_agent"]:
             raise ValueError("can_answer_now requires next_tasks to be only response_agent.")

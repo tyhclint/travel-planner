@@ -15,15 +15,7 @@ def test_flight_request_marks_only_flight_and_ranking_pending():
     assert statuses["flight"] == "pending"
     assert statuses["ranking"] == "pending"
     assert statuses["accommodation"] == "not_required"
-    assert statuses["destination_research"] == "not_required"
     assert statuses["itinerary"] == "not_required"
-
-
-def test_destination_research_request_does_not_require_ranking():
-    statuses = mark_required_tasks(["destination_research"])
-
-    assert statuses["destination_research"] == "pending"
-    assert statuses["ranking"] == "not_required"
 
 
 def test_mark_required_tasks_keeps_stale_status():
@@ -52,5 +44,37 @@ def test_origin_change_marks_completed_flight_ranking_and_itinerary_stale():
     )
 
     assert statuses["flight"] == "stale"
+    assert statuses["ranking"] == "stale"
+    assert statuses["itinerary"] == "stale"
+
+
+def test_accommodation_preferences_do_not_mark_itinerary_stale():
+    statuses = invalidate_stale_tasks(
+        ["accommodation_preferences"],
+        {
+            **DEFAULT_TASK_STATUS,
+            "accommodation": "completed",
+            "ranking": "completed",
+            "itinerary": "completed",
+        },
+    )
+
+    assert statuses["accommodation"] == "stale"
+    assert statuses["ranking"] == "stale"
+    assert statuses["itinerary"] == "completed"
+
+
+def test_activity_preferences_mark_accommodation_stale():
+    statuses = invalidate_stale_tasks(
+        ["activity_preferences"],
+        {
+            **DEFAULT_TASK_STATUS,
+            "accommodation": "completed",
+            "ranking": "completed",
+            "itinerary": "completed",
+        },
+    )
+
+    assert statuses["accommodation"] == "stale"
     assert statuses["ranking"] == "stale"
     assert statuses["itinerary"] == "stale"

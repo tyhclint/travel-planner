@@ -11,7 +11,6 @@ TurnType = Literal[
 RequestedCapability = Literal[
     "flight",
     "accommodation",
-    "destination_research",
     "itinerary",
 ]
 

@@ -3,13 +3,14 @@ from functools import lru_cache
 from langchain_openai import ChatOpenAI
 
 from app.core.config import get_settings
+from app.domain.models.errors import LLMProviderError
 
 
 @lru_cache(maxsize=1)
 def get_turn_interpreter_llm():
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for the LLM turn interpreter.")
+        raise LLMProviderError("OPENAI_API_KEY is required for the LLM turn interpreter.")
 
     return ChatOpenAI(
         model=settings.turn_interpreter_model,
@@ -22,7 +23,7 @@ def get_turn_interpreter_llm():
 def get_orchestrator_llm():
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for the LLM orchestrator.")
+        raise LLMProviderError("OPENAI_API_KEY is required for the LLM orchestrator.")
 
     return ChatOpenAI(
         model=settings.orchestrator_model,
@@ -35,10 +36,23 @@ def get_orchestrator_llm():
 def get_flight_llm():
     settings = get_settings()
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for the flight agent.")
+        raise LLMProviderError("OPENAI_API_KEY is required for the flight agent.")
 
     return ChatOpenAI(
         model=settings.flight_agent_model,
+        api_key=settings.openai_api_key,
+        temperature=0,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_itinerary_llm():
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise LLMProviderError("OPENAI_API_KEY is required for the itinerary planner agent.")
+
+    return ChatOpenAI(
+        model=settings.itinerary_agent_model,
         api_key=settings.openai_api_key,
         temperature=0,
     )

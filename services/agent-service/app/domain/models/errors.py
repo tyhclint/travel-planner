@@ -1,5 +1,8 @@
 from pydantic import BaseModel
 
+class LLMProviderError(Exception):
+    """Raised when the LLM provider returns an error response or no api key set."""
+
 
 class AgentError(BaseModel):
     source: str
@@ -14,3 +17,7 @@ class TurnInterpreterError(Exception):
 
 class OrchestratorError(Exception):
     """Raised when the LLM orchestrator cannot produce valid structured output."""
+
+
+class ItineraryPlannerError(Exception):
+    """Raised when the LLM itinerary planner cannot produce valid structured output."""
