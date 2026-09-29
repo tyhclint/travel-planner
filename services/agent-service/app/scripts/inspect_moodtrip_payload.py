@@ -4,7 +4,8 @@ Run from services/agent-service:
     python -m app.scripts.inspect_moodtrip_payload
 
 The script calls searchHotelsWithRates first, extracts a hotel ID, then calls
-getHotelReviews with that ID. Use --hotel-id to skip automatic ID extraction.
+getHotelDetails and getHotelReviews with that ID. Use --hotel-id to skip
+automatic ID extraction.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from langchain_core.messages import ToolMessage
 from app.services.accommodations.mcp import get_accommodation_mcp_tools
 
 DEFAULT_SEARCH_OUTPUT_PATH = Path("app/scripts/moodtrip_search_hotels_payload_sample.json")
+DEFAULT_DETAILS_OUTPUT_PATH = Path("app/scripts/moodtrip_hotel_details_payload_sample.json")
 DEFAULT_REVIEWS_OUTPUT_PATH = Path("app/scripts/moodtrip_hotel_reviews_payload_sample.json")
 
 
@@ -48,14 +50,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--hotel-id",
         default=None,
-        help="Hotel ID for getHotelReviews. If omitted, extract one from search results.",
+        help="Hotel ID for details/reviews. If omitted, extract one from search results.",
     )
+    parser.add_argument("--skip-details", action="store_true")
+    parser.add_argument("--details-adults", type=int, default=2)
     parser.add_argument("--get-sentiment", action="store_true")
     parser.add_argument(
         "--search-output",
         type=Path,
         default=DEFAULT_SEARCH_OUTPUT_PATH,
         help="Where to write the extracted searchHotelsWithRates payload JSON.",
+    )
+    parser.add_argument(
+        "--details-output",
+        type=Path,
+        default=DEFAULT_DETAILS_OUTPUT_PATH,
+        help="Where to write the extracted getHotelDetails payload JSON.",
     )
     parser.add_argument(
         "--reviews-output",
@@ -73,11 +83,12 @@ def parse_args() -> argparse.Namespace:
 
 
 async def main() -> None:
-    """Call MoodTrip search and reviews tools, then save raw extracted payloads."""
+    """Call MoodTrip accommodation tools and save raw extracted payloads."""
     _configure_utf8_output()
     args = parse_args()
 
     search_tool = await _moodtrip_tool("searchHotelsWithRates")
+    details_tool = await _moodtrip_tool("getHotelDetails")
     reviews_tool = await _moodtrip_tool("getHotelReviews")
 
     search_args = _search_tool_args(args)
@@ -101,6 +112,23 @@ async def main() -> None:
         raise RuntimeError(
             "Could not find a hotel ID in searchHotelsWithRates payload. "
             "Re-run with --hotel-id after inspecting the saved search payload."
+        )
+
+    if not args.skip_details:
+        details_args = _details_tool_args(args, hotel_id)
+        print(f"\nDetails tool name: {details_tool.name}")
+        print(f"Details tool args: {json.dumps(details_args, indent=2)}")
+
+        raw_details_result = await details_tool.ainvoke(details_args)
+        details_payload = _extract_payload(raw_details_result)
+        _save_payload(args.details_output, details_payload)
+
+        print_payload_report(
+            title="getHotelDetails",
+            raw_result=raw_details_result,
+            payload=details_payload,
+            output_path=args.details_output,
+            print_limit=args.print_limit,
         )
 
     reviews_args = {
@@ -161,6 +189,19 @@ def _search_tool_args(args: argparse.Namespace) -> dict[str, Any]:
         tool_args["maxPrice"] = args.max_price
     if args.limit is not None:
         tool_args["limit"] = args.limit
+    return tool_args
+
+
+def _details_tool_args(args: argparse.Namespace, hotel_id: str) -> dict[str, Any]:
+    """Build raw getHotelDetails MCP args from CLI options."""
+    tool_args: dict[str, Any] = {
+        "hotelId": hotel_id,
+        "adults": args.details_adults,
+        "children": [],
+        "currency": args.currency.upper(),
+        "checkin": args.checkin,
+        "checkout": args.checkout,
+    }
     return tool_args
 
 

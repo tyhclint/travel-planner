@@ -19,20 +19,18 @@ class FakeMoodTripTool:
 
 def test_search_accommodations_validates_and_returns_moodtrip_output(monkeypatch):
     fake_tool = FakeMoodTripTool(
-        {
-            "checkIn": "2026-10-01",
-            "checkOut": "2026-10-05",
-            "currency": "USD",
-            "hotels": [
-                {
-                    "id": "hotel-1",
-                    "name": "Tokyo Central Hotel",
-                    "city": "Tokyo",
-                    "rating": 4.4,
-                    "price": {"nightly": 150, "total": 600, "currency": "USD"},
-                }
-            ],
-        }
+        [
+            {
+                "type": "text",
+                "text": "## MoodTrip Hotel Search Results\n\n"
+                "Found **1 hotels** in **Tokyo** (USD 150.00-150.00/night)\n\n"
+                "**Tokyo Central Hotel** ⭐ 8.8/10 | **USD 150.00**/night\n"
+                "![Tokyo Central Hotel](https://example.test/image.jpg)\n"
+                "[View & Book](https://moodtrip.ai/hotel/hotel-1?checkin=2026-10-01"
+                "&checkout=2026-10-05&adults=2)\n",
+                "id": "lc-search",
+            }
+        ]
     )
 
     async def fake_get_moodtrip_tool(tool_name):
@@ -66,17 +64,22 @@ def test_search_accommodations_validates_and_returns_moodtrip_output(monkeypatch
     assert fake_tool.calls[0]["limit"] == 3
     assert result["provider"] == "moodtrip"
     assert result["tool"] == "searchHotelsWithRates"
-    assert result["result"]["hotels"][0]["id"] == "hotel-1"
+    assert result["result"][0]["type"] == "text"
+    assert "Tokyo Central Hotel" in result["result"][0]["text"]
 
 
 def test_get_accommodation_reviews_validates_and_returns_moodtrip_output(monkeypatch):
     fake_tool = FakeMoodTripTool(
-        {
-            "hotelId": "hotel-1",
-            "summary": "Great location and quiet rooms.",
-            "averageRating": 4.7,
-            "reviews": [],
-        }
+        [
+            {
+                "type": "text",
+                "text": "**Guest Reviews** (1 total)\n\n"
+                "⭐ 9/10 — Sam (US)\n"
+                "👍 Great location and quiet rooms.\n"
+                "_2026-09-19T00:00:00Z_\n",
+                "id": "lc-reviews",
+            }
+        ]
     )
 
     async def fake_get_moodtrip_tool(tool_name):
@@ -98,7 +101,7 @@ def test_get_accommodation_reviews_validates_and_returns_moodtrip_output(monkeyp
     assert result["provider"] == "moodtrip"
     assert result["tool"] == "getHotelReviews"
     assert result["hotel_id"] == "hotel-1"
-    assert result["result"]["summary"] == "Great location and quiet rooms."
+    assert "Great location" in result["result"][0]["text"]
 
 
 def test_search_accommodations_rejects_non_object_moodtrip_output(monkeypatch):

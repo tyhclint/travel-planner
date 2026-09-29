@@ -8,7 +8,12 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.services.accommodations.errors import MoodTripPayloadValidationError
 from app.services.accommodations.mcp import get_accommodation_mcp_tools
-from app.services.accommodations.moodtrip import MoodTripToolOutput
+from app.services.accommodations.moodtrip import (
+    MoodTripHotelReviewsOutput,
+    MoodTripHotelDetailsOutput,
+    MoodTripSearchHotelsWithRatesOutput,
+    MoodTripToolOutput,
+)
 
 
 class MoodTripRoomOccupancyArgs(BaseModel):
@@ -101,12 +106,12 @@ async def _get_moodtrip_tool(tool_name: str) -> BaseTool:
     )
 
 
-def _validate_moodtrip_payload(payload: Any, *, tool_name: str) -> dict[str, Any]:
+def _validate_moodtrip_payload(payload: Any, *, tool_name: str, output_model) -> Any:
     try:
-        return MoodTripToolOutput.model_validate(payload).model_dump()
+        return output_model.model_validate(payload).model_dump(mode="json")
     except ValidationError as exc:
         raise MoodTripPayloadValidationError(
-            f"MoodTrip {tool_name} returned a payload that is not a JSON object."
+            f"MoodTrip {tool_name} returned a payload that does not match its output schema."
         ) from exc
 
 
@@ -156,7 +161,11 @@ async def search_accommodations(
     return {
         "provider": "moodtrip",
         "tool": "searchHotelsWithRates",
-        "result": _validate_moodtrip_payload(payload, tool_name="searchHotelsWithRates"),
+        "result": _validate_moodtrip_payload(
+            payload,
+            tool_name="searchHotelsWithRates",
+            output_model=MoodTripSearchHotelsWithRatesOutput,
+        ),
     }
 
 
@@ -189,7 +198,11 @@ async def get_accommodation_details(
         "provider": "moodtrip",
         "tool": "getHotelDetails",
         "hotel_id": hotel_id,
-        "result": _validate_moodtrip_payload(payload, tool_name="getHotelDetails"),
+        "result": _validate_moodtrip_payload(
+            payload,
+            tool_name="getHotelDetails",
+            output_model=MoodTripHotelDetailsOutput,
+        ),
     }
 
 
@@ -212,7 +225,11 @@ async def get_accommodation_reviews(
         "provider": "moodtrip",
         "tool": "getHotelReviews",
         "hotel_id": hotel_id,
-        "result": _validate_moodtrip_payload(payload, tool_name="getHotelReviews"),
+        "result": _validate_moodtrip_payload(
+            payload,
+            tool_name="getHotelReviews",
+            output_model=MoodTripHotelReviewsOutput,
+        ),
     }
 
 

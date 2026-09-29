@@ -1,6 +1,8 @@
 import json
+import re
 from datetime import date
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from langchain_core.messages import ToolMessage
 from pydantic import ValidationError
@@ -57,6 +59,10 @@ def _merge_search_results(
     search_dates: dict[str, date | None],
 ) -> None:
     result = payload.get("result", {})
+    if isinstance(result, list):
+        _merge_search_text_blocks(result, candidate_records, search_dates)
+        return
+
     if not isinstance(result, dict):
         return
 
@@ -81,6 +87,10 @@ def _merge_hotel_payload(
     candidate_records: dict[str, dict[str, Any]],
 ) -> None:
     result = payload.get("result", {})
+    if isinstance(result, list):
+        _merge_review_text_blocks(result, payload, candidate_records)
+        return
+
     if not isinstance(result, dict):
         return
 
@@ -115,6 +125,130 @@ def _merge_review_payload(
         record["review_summary"] = str(review_summary)
     if rating is not None and record.get("rating") is None:
         record["rating"] = rating
+
+
+def _merge_search_text_blocks(
+    result: list[Any],
+    candidate_records: dict[str, dict[str, Any]],
+    search_dates: dict[str, date | None],
+) -> None:
+    """Parse MoodTrip markdown search result blocks into hotel candidate records."""
+    for block in result:
+        if not isinstance(block, dict) or block.get("type") != "text":
+            continue
+        text = _string(block.get("text"))
+        if text is None:
+            continue
+        for hotel in _parse_search_markdown(text):
+            hotel_id = _string(hotel.get("id"))
+            if hotel_id is None:
+                continue
+            record = candidate_records.setdefault(hotel_id, {})
+            record.update(hotel)
+            record["id"] = hotel_id
+            if search_dates["check_in"] is None:
+                search_dates["check_in"] = _parse_date(hotel.get("check_in"))
+            if search_dates["check_out"] is None:
+                search_dates["check_out"] = _parse_date(hotel.get("check_out"))
+
+
+def _merge_review_text_blocks(
+    result: list[Any],
+    payload: dict[str, Any],
+    candidate_records: dict[str, dict[str, Any]],
+) -> None:
+    """Attach MoodTrip review markdown to the matching hotel candidate record."""
+    hotel_id = _string(payload.get("hotel_id"))
+    if hotel_id is None:
+        return
+
+    texts = [
+        str(block.get("text"))
+        for block in result
+        if isinstance(block, dict) and block.get("type") == "text" and block.get("text")
+    ]
+    if not texts:
+        return
+
+    record = candidate_records.setdefault(hotel_id, {"id": hotel_id})
+    record["review_summary"] = "\n\n".join(texts)
+
+
+def _parse_search_markdown(text: str) -> list[dict[str, Any]]:
+    """Extract hotel candidates from MoodTrip's markdown search output."""
+    city = _search_city(text)
+    hotels: list[dict[str, Any]] = []
+    lines = text.splitlines()
+
+    for index, line in enumerate(lines):
+        hotel_match = re.match(
+            r"^\*\*(?P<name>.+?)\*\*\s+⭐\s*(?P<rating>\d+(?:\.\d+)?)/10\s*\|?\s*"
+            r"\*\*(?P<currency>[A-Z]{3})\s+(?P<price>\d+(?:\.\d+)?)\*\*/night",
+            line.strip(),
+        )
+        if hotel_match is None:
+            continue
+
+        moodtrip_rating = _number(hotel_match.group("rating"))
+        record: dict[str, Any] = {
+            "name": hotel_match.group("name"),
+            "rating": moodtrip_rating / 2 if moodtrip_rating is not None else None,
+            "nightly_price": _number(hotel_match.group("price")),
+            "total_price": _number(hotel_match.group("price")),
+            "currency": hotel_match.group("currency"),
+            "location": city,
+        }
+
+        for nearby_line in lines[index + 1 : index + 5]:
+            if nearby_line.startswith("!["):
+                image_match = re.search(r"\]\((?P<url>https?://[^)]+)\)", nearby_line)
+                if image_match:
+                    record["image_url"] = image_match.group("url")
+            if "[View & Book]" in nearby_line:
+                url = _markdown_url(nearby_line)
+                if url:
+                    record["booking_url"] = url
+                    record["id"] = _hotel_id_from_url(url)
+                    record.update(_dates_from_url(url))
+            if "[View Gallery]" in nearby_line:
+                url = _markdown_url(nearby_line)
+                if url:
+                    record["gallery_url"] = url
+
+        hotels.append(record)
+
+    return hotels
+
+
+def _search_city(text: str) -> str | None:
+    match = re.search(r"Found \*\*\d+ hotels\*\* in \*\*(?P<city>.+?)\*\*", text)
+    if match:
+        return match.group("city")
+    return None
+
+
+def _markdown_url(line: str) -> str | None:
+    match = re.search(r"\]\((?P<url>https?://[^)]+)\)", line)
+    if match:
+        return match.group("url")
+    return None
+
+
+def _hotel_id_from_url(url: str) -> str | None:
+    match = re.search(r"/hotel/(?P<hotel_id>[^?\s/]+)", url)
+    if match:
+        return match.group("hotel_id")
+    return None
+
+
+def _dates_from_url(url: str) -> dict[str, str]:
+    query = parse_qs(urlparse(url).query)
+    dates = {}
+    if query.get("checkin"):
+        dates["check_in"] = query["checkin"][0]
+    if query.get("checkout"):
+        dates["check_out"] = query["checkout"][0]
+    return dates
 
 
 def _record_to_accommodation_option(
