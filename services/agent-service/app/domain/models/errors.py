@@ -20,6 +20,10 @@ class OrchestratorError(Exception):
     """Raised when the LLM orchestrator cannot produce valid structured output."""
 
 
+class FlightError(RuntimeError):
+    """Raised when the flight agent cannot produce a valid next action."""
+
+
 class AccommodationError(Exception):
     """Raised when the accommodation agent cannot produce a valid structured action."""
 

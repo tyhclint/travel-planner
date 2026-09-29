@@ -2,8 +2,9 @@ from typing import Any
 
 from langchain_core.messages import ToolMessage
 
+from app.core.config import get_settings
 from app.core.llm import get_flight_llm
-from app.domain.models.errors import AgentError
+from app.domain.models.errors import AgentError, FlightError
 from app.domain.models.flights import FlightOption
 from app.graph.state import TravelState
 from app.services.agent_history import last_tool_message_name
@@ -14,6 +15,7 @@ from app.services.flights.tools import finish_flight_search, search_flights
 MIN_USABLE_FLIGHT_OPTIONS = 3
 MAX_FLIGHT_SEARCH_ATTEMPTS = 3
 FLIGHT_TOOL_NAMES = {"search_flights", "finish_flight_search"}
+settings = get_settings()
 
 
 def flight_node(state: TravelState):
@@ -41,17 +43,25 @@ def flight_node(state: TravelState):
             )
         )
     except RuntimeError as exc:
+        error = FlightError(
+            f"Flight agent could not choose the next flight action: {exc}"
+        )
+        if settings.debug:
+            raise error from exc
         return _flight_failed_update(
             "llm_action_failed",
-            f"Flight agent could not choose the next flight action: {exc}",
+            str(error),
             retryable=True,
         )
 
     tool_calls = _known_tool_calls(getattr(response, "tool_calls", []) or [])
     if len(tool_calls) != 1:
+        error = FlightError("Flight agent must call exactly one flight tool.")
+        if settings.debug:
+            raise error
         return _flight_failed_update(
             "invalid_llm_action",
-            "Flight agent must call exactly one flight tool.",
+            str(error),
             retryable=True,
             messages=[response],
         )
