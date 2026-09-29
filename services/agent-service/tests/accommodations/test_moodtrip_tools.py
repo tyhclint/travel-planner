@@ -44,21 +44,26 @@ def test_search_accommodations_validates_and_returns_moodtrip_output(monkeypatch
     result = asyncio.run(
         accommodation_tools.search_accommodations.ainvoke(
             {
-                "destination": "Tokyo",
-                "check_in": date(2026, 10, 1),
-                "check_out": date(2026, 10, 5),
-                "adults": 2,
+                "city_name": "Tokyo",
+                "country_code": "JP",
+                "checkin": date(2026, 10, 1),
+                "checkout": date(2026, 10, 5),
+                "occupancies": [{"adults": 2, "children": []}],
                 "currency": "usd",
                 "max_price": 200,
+                "limit": 3,
             }
         )
     )
 
-    assert fake_tool.calls[0]["city"] == "Tokyo"
-    assert fake_tool.calls[0]["checkIn"] == "2026-10-01"
-    assert fake_tool.calls[0]["checkOut"] == "2026-10-05"
+    assert fake_tool.calls[0]["cityName"] == "Tokyo"
+    assert fake_tool.calls[0]["countryCode"] == "JP"
+    assert fake_tool.calls[0]["checkin"] == "2026-10-01"
+    assert fake_tool.calls[0]["checkout"] == "2026-10-05"
+    assert fake_tool.calls[0]["occupancies"] == [{"adults": 2, "children": []}]
     assert fake_tool.calls[0]["currency"] == "USD"
     assert fake_tool.calls[0]["maxPrice"] == 200
+    assert fake_tool.calls[0]["limit"] == 3
     assert result["provider"] == "moodtrip"
     assert result["tool"] == "searchHotelsWithRates"
     assert result["result"]["hotels"][0]["id"] == "hotel-1"
@@ -84,13 +89,12 @@ def test_get_accommodation_reviews_validates_and_returns_moodtrip_output(monkeyp
         accommodation_tools.get_accommodation_reviews.ainvoke(
             {
                 "hotel_id": "hotel-1",
-                "limit": 5,
-                "language": "en",
+                "get_sentiment": True,
             }
         )
     )
 
-    assert fake_tool.calls[0] == {"hotelId": "hotel-1", "limit": 5, "language": "en"}
+    assert fake_tool.calls[0] == {"hotelId": "hotel-1", "getSentiment": True}
     assert result["provider"] == "moodtrip"
     assert result["tool"] == "getHotelReviews"
     assert result["hotel_id"] == "hotel-1"
@@ -109,9 +113,11 @@ def test_search_accommodations_rejects_non_object_moodtrip_output(monkeypatch):
         asyncio.run(
             accommodation_tools.search_accommodations.ainvoke(
                 {
-                    "destination": "Tokyo",
-                    "check_in": date(2026, 10, 1),
-                    "check_out": date(2026, 10, 5),
+                    "city_name": "Tokyo",
+                    "country_code": "JP",
+                    "checkin": date(2026, 10, 1),
+                    "checkout": date(2026, 10, 5),
+                    "occupancies": [{"adults": 2, "children": []}],
                 }
             )
         )

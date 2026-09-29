@@ -26,6 +26,8 @@ Enough data usually means:
 Search guidance:
 - Prefer the user's destination, dates, traveler count, budget, currency,
   accommodation style, and accommodation priority from the structured state.
+- Use the available search_accommodations arguments to express location, dates,
+  travelers, budget, currency, and hotel-name constraints.
 - If dates are present, search with rates before requesting details or reviews.
 - If usable options are thin, search again with a reasonable adjustment such as
   fewer constraints, a broader destination label, or a higher max price.

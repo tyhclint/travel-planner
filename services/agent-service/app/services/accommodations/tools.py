@@ -4,28 +4,41 @@ from typing import Any
 
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import BaseTool, tool
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.services.accommodations.errors import MoodTripPayloadValidationError
 from app.services.accommodations.mcp import get_accommodation_mcp_tools
 from app.services.accommodations.moodtrip import MoodTripToolOutput
 
 
-class AccommodationSearchArgs(BaseModel):
-    destination: str = Field(..., min_length=1, max_length=100)
-    check_in: date
-    check_out: date
-    adults: int = Field(default=1, ge=1, le=16)
+class MoodTripRoomOccupancyArgs(BaseModel):
+    adults: int = Field(..., ge=1, le=16)
     children: list[int] = Field(default_factory=list, max_length=6)
-    rooms: int = Field(default=1, ge=1, le=8)
+
+
+class MoodTripSearchHotelsWithRatesArgs(BaseModel):
+    city_name: str | None = Field(default=None, min_length=1, max_length=100)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    place_id: str | None = Field(default=None, min_length=1, max_length=200)
+    checkin: date
+    checkout: date
+    occupancies: list[MoodTripRoomOccupancyArgs] = Field(..., min_length=1, max_length=8)
+    hotel_name: str | None = Field(default=None, min_length=1, max_length=200)
     currency: str = Field(default="USD", min_length=3, max_length=3)
-    country: str | None = Field(default=None, min_length=2, max_length=100)
-    max_price: int | None = Field(default=None, ge=0)
-    min_rating: float | None = Field(default=None, ge=0, le=5)
-    query: str | None = Field(default=None, min_length=1, max_length=500)
+    guest_nationality: str | None = Field(default=None, min_length=2, max_length=2)
+    max_price: float | None = Field(default=None, ge=0)
+    limit: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_location(self):
+        has_place = bool(self.place_id)
+        has_city_country = bool(self.city_name and self.country_code)
+        if not has_place and not has_city_country:
+            raise ValueError("Provide either place_id or both city_name and country_code.")
+        return self
 
 
-class AccommodationDetailsArgs(BaseModel):
+class MoodTripHotelDetailsArgs(BaseModel):
     hotel_id: str = Field(..., min_length=1, max_length=200)
     check_in: date | None = None
     check_out: date | None = None
@@ -34,10 +47,9 @@ class AccommodationDetailsArgs(BaseModel):
     currency: str = Field(default="USD", min_length=3, max_length=3)
 
 
-class AccommodationReviewsArgs(BaseModel):
+class MoodTripHotelReviewsArgs(BaseModel):
     hotel_id: str = Field(..., min_length=1, max_length=200)
-    limit: int = Field(default=10, ge=1, le=50)
-    language: str | None = Field(default=None, min_length=2, max_length=10)
+    get_sentiment: bool = False
 
 
 class FinishAccommodationSearchArgs(BaseModel):
@@ -98,40 +110,46 @@ def _validate_moodtrip_payload(payload: Any, *, tool_name: str) -> dict[str, Any
         ) from exc
 
 
-@tool(args_schema=AccommodationSearchArgs)
+@tool(args_schema=MoodTripSearchHotelsWithRatesArgs)
 async def search_accommodations(
-    destination: str,
-    check_in: date,
-    check_out: date,
-    adults: int = 1,
-    children: list[int] | None = None,
-    rooms: int = 1,
+    checkin: date,
+    checkout: date,
+    occupancies: list[MoodTripRoomOccupancyArgs],
+    city_name: str | None = None,
+    country_code: str | None = None,
+    place_id: str | None = None,
+    hotel_name: str | None = None,
     currency: str = "USD",
-    country: str | None = None,
-    max_price: int | None = None,
-    min_rating: float | None = None,
-    query: str | None = None,
+    guest_nationality: str | None = None,
+    max_price: float | None = None,
+    limit: int | None = None,
 ) -> dict[str, Any]:
     """Search real accommodation rates using MoodTrip through its MCP server."""
     moodtrip_tool = await _get_moodtrip_tool("searchHotelsWithRates")
-    search_query = query or f"Hotels in {destination}"
 
     moodtrip_args: dict[str, Any] = {
-        "query": search_query,
-        "city": destination,
-        "checkIn": _format_moodtrip_date(check_in),
-        "checkOut": _format_moodtrip_date(check_out),
-        "adults": adults,
-        "children": children or [],
-        "rooms": rooms,
+        "checkin": _format_moodtrip_date(checkin),
+        "checkout": _format_moodtrip_date(checkout),
+        "occupancies": [
+            occupancy.model_dump() if hasattr(occupancy, "model_dump") else occupancy
+            for occupancy in occupancies
+        ],
         "currency": currency.upper(),
     }
-    if country is not None:
-        moodtrip_args["country"] = country
+    if city_name is not None:
+        moodtrip_args["cityName"] = city_name
+    if country_code is not None:
+        moodtrip_args["countryCode"] = country_code.upper()
+    if place_id is not None:
+        moodtrip_args["placeId"] = place_id
+    if hotel_name is not None:
+        moodtrip_args["hotelName"] = hotel_name
+    if guest_nationality is not None:
+        moodtrip_args["guestNationality"] = guest_nationality.upper()
     if max_price is not None:
         moodtrip_args["maxPrice"] = max_price
-    if min_rating is not None:
-        moodtrip_args["minRating"] = min_rating
+    if limit is not None:
+        moodtrip_args["limit"] = limit
 
     raw_result = await moodtrip_tool.ainvoke(moodtrip_args)
     payload = _extract_moodtrip_payload(raw_result)
@@ -142,7 +160,7 @@ async def search_accommodations(
     }
 
 
-@tool(args_schema=AccommodationDetailsArgs)
+@tool(args_schema=MoodTripHotelDetailsArgs)
 async def get_accommodation_details(
     hotel_id: str,
     check_in: date | None = None,
@@ -175,21 +193,18 @@ async def get_accommodation_details(
     }
 
 
-@tool(args_schema=AccommodationReviewsArgs)
+@tool(args_schema=MoodTripHotelReviewsArgs)
 async def get_accommodation_reviews(
     hotel_id: str,
-    limit: int = 10,
-    language: str | None = None,
+    get_sentiment: bool = False,
 ) -> dict[str, Any]:
     """Fetch hotel reviews using MoodTrip through its MCP server."""
     moodtrip_tool = await _get_moodtrip_tool("getHotelReviews")
 
     moodtrip_args: dict[str, Any] = {
         "hotelId": hotel_id,
-        "limit": limit,
+        "getSentiment": get_sentiment,
     }
-    if language is not None:
-        moodtrip_args["language"] = language
 
     raw_result = await moodtrip_tool.ainvoke(moodtrip_args)
     payload = _extract_moodtrip_payload(raw_result)

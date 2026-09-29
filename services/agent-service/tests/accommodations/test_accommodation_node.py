@@ -170,10 +170,11 @@ def _search_call():
             {
                 "name": "search_accommodations",
                 "args": {
-                    "destination": "Tokyo",
-                    "check_in": "2026-10-01",
-                    "check_out": "2026-10-05",
-                    "adults": 2,
+                    "city_name": "Tokyo",
+                    "country_code": "JP",
+                    "checkin": "2026-10-01",
+                    "checkout": "2026-10-05",
+                    "occupancies": [{"adults": 2, "children": []}],
                     "currency": "USD",
                 },
                 "id": "call-search",

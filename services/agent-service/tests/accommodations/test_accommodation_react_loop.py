@@ -31,28 +31,33 @@ def test_accommodation_react_loop_can_search_review_and_finish(monkeypatch):
 
     @tool
     def search_accommodations(
-        destination: str,
-        check_in: str,
-        check_out: str,
-        adults: int = 1,
+        city_name: str,
+        country_code: str,
+        checkin: str,
+        checkout: str,
+        occupancies: list[dict[str, Any]],
         currency: str = "USD",
     ) -> dict[str, Any]:
         """Return a fake MoodTrip-shaped hotel search response."""
         search_calls.append(
             {
-                "destination": destination,
-                "check_in": check_in,
-                "check_out": check_out,
-                "adults": adults,
+                "city_name": city_name,
+                "country_code": country_code,
+                "checkin": checkin,
+                "checkout": checkout,
+                "occupancies": occupancies,
                 "currency": currency,
             }
         )
         return _moodtrip_search_result(currency)
 
     @tool
-    def get_accommodation_reviews(hotel_id: str, limit: int = 10) -> dict[str, Any]:
+    def get_accommodation_reviews(
+        hotel_id: str,
+        get_sentiment: bool = False,
+    ) -> dict[str, Any]:
         """Return a fake MoodTrip-shaped hotel review response."""
-        review_calls.append({"hotel_id": hotel_id, "limit": limit})
+        review_calls.append({"hotel_id": hotel_id, "get_sentiment": get_sentiment})
         return {
             "provider": "moodtrip",
             "tool": "getHotelReviews",
@@ -89,14 +94,15 @@ def test_accommodation_react_loop_can_search_review_and_finish(monkeypatch):
 
     assert search_calls == [
         {
-            "destination": "Tokyo",
-            "check_in": "2026-10-01",
-            "check_out": "2026-10-05",
-            "adults": 2,
+            "city_name": "Tokyo",
+            "country_code": "JP",
+            "checkin": "2026-10-01",
+            "checkout": "2026-10-05",
+            "occupancies": [{"adults": 2, "children": []}],
             "currency": "USD",
         }
     ]
-    assert review_calls == [{"hotel_id": "hotel-1", "limit": 5}]
+    assert review_calls == [{"hotel_id": "hotel-1", "get_sentiment": True}]
     assert finish_calls == [{"reason": "Enough usable accommodation options."}]
     assert result["task_status"]["accommodation"] == "completed"
     assert len(result["accommodation_results"]) == 1
@@ -149,10 +155,11 @@ def _search_call(call_id: str) -> AIMessage:
             {
                 "name": "search_accommodations",
                 "args": {
-                    "destination": "Tokyo",
-                    "check_in": "2026-10-01",
-                    "check_out": "2026-10-05",
-                    "adults": 2,
+                    "city_name": "Tokyo",
+                    "country_code": "JP",
+                    "checkin": "2026-10-01",
+                    "checkout": "2026-10-05",
+                    "occupancies": [{"adults": 2, "children": []}],
                     "currency": "USD",
                 },
                 "id": call_id,
@@ -169,7 +176,7 @@ def _review_call(call_id: str) -> AIMessage:
                 "name": "get_accommodation_reviews",
                 "args": {
                     "hotel_id": "hotel-1",
-                    "limit": 5,
+                    "get_sentiment": True,
                 },
                 "id": call_id,
             }
