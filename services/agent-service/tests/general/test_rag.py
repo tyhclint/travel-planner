@@ -52,6 +52,20 @@ class FakeClient:
 def _build_test_resources(tmp_path: Path) -> Path:
     resources_dir = tmp_path / "resources"
     files = {
+        resources_dir / "asia" / "japan" / "country.md": """
+---
+document_type: country
+country: Japan
+tags:
+  - etiquette
+  - planning
+---
+
+# Japan
+
+## Practical Tips
+Carry cash, stay quiet on trains, and keep hold of your rubbish until you find a bin.
+""",
         resources_dir / "asia" / "japan" / "tokyo.md": """
 # Tokyo, Japan
 
@@ -95,6 +109,19 @@ def test_chunk_markdown_file_extracts_resource_metadata(tmp_path: Path):
     assert chunks[0].metadata["source_path"].endswith("tokyo.md")
 
 
+def test_chunk_markdown_file_marks_country_documents(tmp_path: Path):
+    resources_dir = _build_test_resources(tmp_path)
+    path = resources_dir / "asia" / "japan" / "country.md"
+
+    chunks = rag._chunk_markdown_file(path, base_dir=resources_dir)
+
+    assert chunks
+    assert chunks[0].metadata["document_type"] == "country"
+    assert chunks[0].metadata["country"] == "Japan"
+    assert chunks[0].metadata["location"] == "Japan"
+    assert "city" not in chunks[0].metadata
+
+
 def test_indexer_vector_encodes_before_upsert(monkeypatch, tmp_path: Path):
     resources_dir = _build_test_resources(tmp_path)
     collection = FakeCollection()
@@ -107,8 +134,8 @@ def test_indexer_vector_encodes_before_upsert(monkeypatch, tmp_path: Path):
     )
     stats = indexer.index_documents(reset_collection=True)
 
-    assert stats.documents_indexed == 3
-    assert stats.chunks_indexed > 3
+    assert stats.documents_indexed == 4
+    assert stats.chunks_indexed > 4
     assert client.deleted_collections == [stats.collection_name]
     assert collection.upsert_payload is not None
     assert len(collection.upsert_payload["documents"]) == stats.chunks_indexed
@@ -157,5 +184,5 @@ def test_search_service_requires_indexed_collection(monkeypatch):
 
     service = MarkdownRAGSearchService(embedder=FakeEmbedder())
 
-    with pytest.raises(RuntimeError, match="Run the MCP indexing tool first"):
+    with pytest.raises(RuntimeError, match="Index the markdown guides before searching"):
         service.search_destination(TripRequirements(destination="Tokyo"), TravelPreferences())

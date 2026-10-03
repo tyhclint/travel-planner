@@ -1,3 +1,14 @@
+---
+city: Beijing
+country: China
+recommended_days: 4
+tags:
+  - itinerary
+  - landmarks
+  - food
+  - first-time
+---
+
 # Beijing Four-Day Itinerary
 
 Four days in Beijing is an ideal amount of time for first-time visitors to explore China's capital. You can visit iconic ancient landmarks, immerse yourself in modern creative districts, experience world-class theme parks, and take a scenic day trip to the Great Wall. This itinerary allows you to get the best out of four full days in the city under a budget of S$400 per person (excluding flights).

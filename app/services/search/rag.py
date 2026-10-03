@@ -207,36 +207,52 @@ def _chunk_markdown_file(
     if not raw_text:
         return []
 
+    frontmatter, markdown_body = _extract_frontmatter(raw_text)
+
     relative_path = path.relative_to(base_dir)
     continent = _humanize(relative_path.parts[0]) if len(relative_path.parts) > 0 else "Unknown"
-    country = _humanize(relative_path.parts[1]) if len(relative_path.parts) > 1 else "Unknown"
-    city = _humanize(path.stem)
-    location = f"{city}, {country}"
+    inferred_country = _humanize(relative_path.parts[1]) if len(relative_path.parts) > 1 else "Unknown"
+    inferred_document_type = "country" if path.stem.lower() == "country" else "city"
+    document_type = str(frontmatter.get("document_type") or inferred_document_type)
+    country = str(frontmatter.get("country") or inferred_country)
+    inferred_city = "" if document_type == "country" else _humanize(path.stem)
+    city = str(frontmatter.get("city") or inferred_city)
+    location = f"{city}, {country}" if city else country
+    source_url = str(frontmatter.get("source_url") or path.resolve().as_uri())
+    tags = frontmatter.get("tags")
 
-    document_title, sections = _parse_markdown_sections(raw_text, city)
+    fallback_title = country if document_type == "country" else city
+    document_title, sections = _parse_markdown_sections(markdown_body, fallback_title)
     chunks: list[MarkdownChunk] = []
 
     for section_index, (section_title, section_body) in enumerate(sections):
         category = _infer_category(section_title)
         for chunk_index, chunk_text in enumerate(_chunk_section_text(section_body)):
             identity = f"{relative_path.as_posix()}::{section_index}::{chunk_index}"
+            metadata: dict[str, str | int] = {
+                "continent": continent,
+                "country": country,
+                "location": location,
+                "document_type": document_type,
+                "document_title": document_title,
+                "section_title": section_title,
+                "category": category,
+                "source_path": str(path),
+                "source_url": source_url,
+                "section_index": section_index,
+                "chunk_index": chunk_index,
+            }
+            if city:
+                metadata["city"] = city
+            if "recommended_days" in frontmatter:
+                metadata["recommended_days"] = int(frontmatter["recommended_days"])
+            if isinstance(tags, list) and tags:
+                metadata["tags"] = ", ".join(str(tag) for tag in tags)
             chunks.append(
                 MarkdownChunk(
                     chunk_id=sha1(identity.encode("utf-8")).hexdigest(),
                     document=chunk_text,
-                    metadata={
-                        "continent": continent,
-                        "country": country,
-                        "city": city,
-                        "location": location,
-                        "document_title": document_title,
-                        "section_title": section_title,
-                        "category": category,
-                        "source_path": str(path),
-                        "source_url": path.resolve().as_uri(),
-                        "section_index": section_index,
-                        "chunk_index": chunk_index,
-                    },
+                    metadata=metadata,
                 )
             )
 
@@ -267,6 +283,65 @@ def _parse_markdown_sections(
 
     _append_section(sections, current_title, current_lines)
     return document_title, sections
+
+
+def _extract_frontmatter(raw_text: str) -> tuple[dict[str, str | int | list[str]], str]:
+    lines = raw_text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, raw_text
+
+    frontmatter_lines: list[str] = []
+    body_start_index: int | None = None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            body_start_index = index + 1
+            break
+        frontmatter_lines.append(line)
+
+    if body_start_index is None:
+        return {}, raw_text
+
+    frontmatter = _parse_frontmatter_lines(frontmatter_lines)
+    body = "\n".join(lines[body_start_index:]).lstrip()
+    return frontmatter, body
+
+
+def _parse_frontmatter_lines(lines: list[str]) -> dict[str, str | int | list[str]]:
+    metadata: dict[str, str | int | list[str]] = {}
+    current_list_key: str | None = None
+
+    for raw_line in lines:
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        if stripped.startswith("- ") and current_list_key:
+            current_value = metadata.get(current_list_key)
+            if isinstance(current_value, list):
+                current_value.append(stripped[2:].strip())
+            continue
+
+        current_list_key = None
+        key, separator, raw_value = stripped.partition(":")
+        if separator != ":":
+            continue
+
+        value = raw_value.strip()
+        if not value:
+            metadata[key] = []
+            current_list_key = key
+            continue
+
+        metadata[key] = _parse_frontmatter_scalar(value)
+
+    return metadata
+
+
+def _parse_frontmatter_scalar(value: str) -> str | int:
+    if re.fullmatch(r"-?\d+", value):
+        return int(value)
+    return value
 
 
 def _append_section(
