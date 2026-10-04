@@ -15,6 +15,11 @@ tags:
 ## Overview
 Tokyo works best when planned by neighborhood rather than by trying to cross the city repeatedly for individual landmarks. A strong first trip mixes traditional districts, big modern hubs, food stops, skyline views, and one or two slower local neighborhoods. Four full days is the minimum for a first visit, while five to seven days gives enough room for better pacing and a day trip.
 
+## Who Tokyo suits
+- Tokyo is best for travelers who want variety rather than one single mood. It suits people who like dense city energy, convenient transport, strong food options, and the ability to switch from shrines to shopping to nightlife in the same day.
+- It works especially well for first-time Japan trips because it is easy to navigate with Google Maps, has strong English support by Japan standards, and offers both classic and modern experiences without needing long intercity transfers.
+- Travelers who want a quiet, compact, temple-heavy trip usually prefer Kyoto more than Tokyo. Tokyo can still be enjoyable for them, but only if they deliberately include calmer areas like Asakusa, Yanaka, Kiyosumi-Shirakawa, or Nakameguro.
+
 ## Neighborhoods
 - **Shibuya**: scramble crossing, shopping, nightlife, and an easy first-time base.
 - **Harajuku and Omotesando**: youth culture, crepes, Meiji Shrine access, and designer-lined avenues.
@@ -24,6 +29,14 @@ Tokyo works best when planned by neighborhood rather than by trying to cross the
 - **Yanaka**: a lower-rise, slower, more old-fashioned side of Tokyo.
 - **Ginza and Tsukiji**: polished shopping plus seafood breakfast and market browsing.
 - **Kuramae, Nakameguro, and Shimokitazawa**: cafes, design shops, vintage, ceramics, and a more local feel.
+
+## Best neighborhoods by travel style
+- **Best for first-timers**: Shibuya, Shinjuku, and Asakusa because they balance easy transport, lots to do, and practical hotel options.
+- **Best for traditional atmosphere**: Asakusa and Yanaka.
+- **Best for cafes, design, and slower wandering**: Kuramae, Nakameguro, and Shimokitazawa.
+- **Best for nightlife**: Shibuya and Shinjuku, with Kabukicho, Golden Gai, and late-night restaurant density.
+- **Best for shopping**: Ginza for polished flagship stores, Shibuya for trend-driven shopping, and Harajuku for youth fashion.
+- **Best for families or slower pacing**: Asakusa, Ueno, and parts of western Tokyo where evenings are calmer.
 
 ## Must-do sights
 - **Meiji Shrine and Yoyogi Park** for an easy shrine-plus-city contrast.
@@ -40,6 +53,8 @@ Tokyo works best when planned by neighborhood rather than by trying to cross the
 - Core first-time foods include sushi, ramen, yakitori, tonkatsu, izakaya meals, onigiri, tempura, and dessert stops in Harajuku or neighborhood cafes.
 - Good food-focused areas include Tsukiji, Asakusa, Shibuya, Shinjuku, and Yurakucho.
 - Specialty add-ons worth considering include kitchenware shopping in Kappabashi, monjayaki in Tsukishima, and slower cafe hopping in Kuramae or Nakameguro.
+- Tokyo is strongest when meals are attached to the area you are already exploring instead of treated as separate long-distance destinations. This is especially true in a large city where station transfers can quietly consume a lot of time.
+- A good Tokyo food plan usually includes one seafood-focused morning, one ramen stop, one izakaya-style dinner, one convenience-store or depachika backup meal, and one dessert or cafe-focused afternoon.
 
 ## Getting around
 - **IC cards** (Suica or Pasmo — functionally identical) are the standard way to pay for trains, buses, and even convenience store purchases. iPhone users can add a virtual IC card via the Wallet app; Android support is limited to phones purchased in Japan.
@@ -53,6 +68,9 @@ First-time visitors are generally best based near **Shibuya, Shinjuku, or Asakus
 - **Budget**: hostels/poshtels in Asakusa; business hotels near Shimbashi station.
 - **Mid-range**: hotels in Ginza (convenient, central, near flagship shopping) or Shinagawa (close to both Shibuya and Haneda Airport).
 - **Luxury**: hotels in Roppongi (elevated city views) or similar high-end districts.
+- **If nightlife matters most**: Shibuya or Shinjuku.
+- **If you want a calmer base**: Asakusa.
+- **If airport convenience matters**: Shinagawa or a Haneda-friendly route can make arrival and departure much easier.
 
 ## Suggested structure
 ### 3 days
@@ -67,6 +85,25 @@ First-time visitors are generally best based near **Shibuya, Shinjuku, or Asakus
 ### 6 to 7 days
 - Add one day trip such as **Hakone**, **Kamakura**, **Nikko**, or the **Fuji Five Lakes**.
 - Keep one flexible day for shopping, museums, anime or electronics districts, or any attractions that need advance booking.
+
+## Good same-day pairings
+- **Harajuku + Meiji Shrine + Omotesando + Shibuya** works well because the walking flow is natural and you can end with dinner or skyline views.
+- **Asakusa + Ueno + Yanaka** gives a stronger old-Tokyo day than combining Asakusa with far-west neighborhoods.
+- **Tsukiji + Ginza + teamLab** works well for a more modern or polished day with food and indoor attractions.
+- **Shinjuku + nearby nightlife** is better as a late day because the area becomes more interesting after dark.
+- **Skytree + Asakusa** is a much better pairing than crossing to Shibuya immediately afterward unless you have extra days.
+
+## Common mistakes
+- Trying to visit too many major neighborhoods in one day. Tokyo looks compact on the map, but station size, transfers, and walking time add up quickly.
+- Treating Shibuya, Shinjuku, and Asakusa as quick photo stops instead of areas worth half a day each.
+- Booking restaurants or attractions too aggressively and losing flexibility in a city where wandering often leads to good discoveries.
+- Forgetting that the last train matters. Tokyo is easy late at night until you miss the final connection and end up with an expensive taxi ride.
+- Assuming all good food needs advance reservations. Tokyo has excellent casual dining, and some of the best meals are simple neighborhood finds.
+
+## Book ahead
+- Reserve **teamLab**, **Shibuya Sky**, **Ghibli Museum**, **Disney**, **sumo**, and any limited-entry themed experiences as early as possible if they matter to your trip.
+- Popular omakase, observation decks at ideal sunset times, and seasonal attractions also reward early booking.
+- If a place is important but not reservable, go early rather than hoping crowds will thin out later.
 
 ## Practical tips
 - Start famous sights early. This matters especially for Senso-ji, Tsukiji, skyline decks, and popular modern attractions.
