@@ -1,10 +1,9 @@
 """MCP server exposed to MCP-capable clients such as Claude."""
 
-from datetime import date
 import json
 from typing import Any, Final
 
-from fastmcp import Client, FastMCP
+from fastmcp import FastMCP
 
 from app.services.mcp.registry import get_local_registry
 
@@ -27,7 +26,7 @@ def list_travel_capabilities() -> str:
 @mcp.tool()
 async def search_flights(requirements: dict[str, Any], preferences: dict[str, Any]) -> str:
     """Directly search normalized flight options."""
-    values = await get_local_registry().call_tool(
+    values = get_local_registry().call_tool(
         "travel.search_flights",
         {"requirements": requirements, "preferences": preferences},
     )
@@ -70,7 +69,7 @@ async def search_accommodations(
     requirements: dict[str, Any], preferences: dict[str, Any]
 ) -> str:
     """Directly search normalized accommodation options."""
-    values = await _registry().call_tool(
+    values = _registry().call_tool(
         "travel.search_accommodations",
         {"requirements": requirements, "preferences": preferences},
     )
@@ -80,7 +79,7 @@ async def search_accommodations(
 @mcp.tool()
 async def search_destination(requirements: dict[str, Any], preferences: dict[str, Any]) -> str:
     """Directly search normalized destination recommendations."""
-    values = await _registry().call_tool(
+    values = _registry().call_tool(
         "travel.search_destination",
         {"requirements": requirements, "preferences": preferences},
     )
